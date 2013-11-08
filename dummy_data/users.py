@@ -38,14 +38,14 @@ def api_fetch(endpoint, **kwargs):
     url = 'http://api.zeit.de/%s?%s' % (endpoint, urllib.urlencode(kwargs))
     try:
         return json.loads(urllib.urlopen(url).read())
-        v.encode('utf8')
-    except IOError, e:
-        raise UserWarning('%s %s' % e.args[1:-1])
+    except:
+        return dict(matches=[])
+
 
 def write_records(authors):
     global stats
 
-    with open('users.csv', 'wb') as csvfile:
+    with open('users.csv', 'a') as csvfile:
         user_writer = csv.writer(csvfile, delimiter=' ')
 
         for author in authors:
