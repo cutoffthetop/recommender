@@ -28,25 +28,38 @@ VERSION
     0.1
 """
 
-import optparse, os, sys, time, traceback
 import csv
 import json
+import optparse
+import os
+import random
+import sys
+import time
+import traceback
 import urllib
 
 
 def api_fetch(endpoint, **kwargs):
-    url = 'http://api.zeit.de/%s?%s' % (endpoint, urllib.urlencode(kwargs))
+    base = 'http://api.zeit.de/'
+    endpoint = base + endpoint if base not in endpoint else endpoint
+    url = '%s?%s' % (endpoint, urllib.urlencode(kwargs))
     try:
         return json.loads(urllib.urlopen(url).read())
     except:
         return dict(matches=[])
 
 
+def str_to_int(string):
+    return int(''.join(format(ord(x), 'b') for x in string), 2)
+
+
 def write_records(authors):
     global stats
 
-    with open('users.csv', 'a') as csvfile:
-        user_writer = csv.writer(csvfile, delimiter=' ')
+    valid_authors = []
+
+    with open('ratings.csv', 'a') as csvfile:
+        rating_writer = csv.writer(csvfile, delimiter=',')
 
         for author in authors:
             if isinstance(author, int):
@@ -74,17 +87,32 @@ def write_records(authors):
 
             id_ = result['matches'][0]['id']
 
-            result = api_fetch('author/' + id_, api_key=args[0], fields='uuid')
+            result = api_fetch('author/' + id_, api_key=args[0])
 
             if not 'matches' in result:
                 stats['No articles found'] += 1
                 continue
 
-            for article in list([m['uuid'] for m in result['matches']]):
-                user_writer.writerow((id_, article))
+            author_id = str_to_int(id_)
+            valid_authors.append(author_id)
+
+            for uri in list([m['uri'] for m in result['matches']]):
+                article = api_fetch(uri, api_key=args[0])
+                article_id = str_to_int(article['uuid'])
+                rating_writer.writerow((author_id, article_id, 2))
+                for related in article['relations']:
+                    relation_id = str_to_int(related['uri'].split('/')[-1])
+                    rating_writer.writerow((author_id, relation_id, 1))
+
+    with open('user.csv', 'a') as csvfile:
+        if len(valid_authors):
+            user_writer = csv.writer(csvfile, delimiter=',')
+            user_writer.writerow((random.choice(valid_authors),))
+
     return stats
 
-def main ():
+
+def main():
     global options, args, stats
 
     stats = {
@@ -116,7 +144,7 @@ if __name__ == '__main__':
             usage=globals()['__doc__'],
             version='0.1'
             )
-        parser.add_option (
+        parser.add_option(
             '-v',
             '--verbose',
             default=False,
@@ -131,7 +159,7 @@ if __name__ == '__main__':
             )
         (options, args) = parser.parse_args()
         if len(args) < 1:
-            parser.error ('Missing argument: api_key.')
+            parser.error('Missing argument: api_key.')
         if options.verbose:
             print time.asctime()
         main()
