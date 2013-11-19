@@ -2,13 +2,14 @@
 """
 SYNOPSIS
 
-    users [-t,--threshold] [-h,--help] [-v,--verbose] [--version] api_key
+    crawler [-t,--threshold] [-h,--help] [-v,--verbose] [--version] api_key
 
 DESCRIPTION
 
-    TODO This describes how to use this script. This docstring
-    will be printed by the script if there is an error or
-    if the user requests help (-h or --help).
+    This ZEIT ONLINE Content API crawler can generate dummy user data by
+    pretending authors are users and associated articles were read by them.
+    To use this script you need to signup for an API key at:
+    http://developer.zeit.de
 
 EXIT STATUS
 
@@ -49,10 +50,6 @@ def api_fetch(endpoint, **kwargs):
         return dict(matches=[])
 
 
-def str_to_int(string):
-    return int(''.join(format(ord(x), 'b') for x in string), 2)
-
-
 def write_records(authors):
     global stats
 
@@ -68,9 +65,12 @@ def write_records(authors):
                 # Only select authors that reach the threshold.
                 stats['Threshold not reached'] += 1
                 continue
-            if len(author) < 5 or len(author) > 50 or author.count(' ') > 5:
-                # Simply sanity checks on the author's name.
+            if len(author) < 5 or len(author) > 50:
+                # Simply sanity checks on the name length.
                 stats['Sanity check failed'] += 1
+                continue
+            if ',' in author or author.count(' ') > 5:
+                # Simply sanity checks on unwanted characters.
                 continue
             try:
                 # Ignore unicode author names for now.
@@ -93,16 +93,14 @@ def write_records(authors):
                 stats['No articles found'] += 1
                 continue
 
-            author_id = str_to_int(id_)
-            valid_authors.append(author_id)
+            valid_authors.append(id_)
 
             for uri in list([m['uri'] for m in result['matches']]):
                 article = api_fetch(uri, api_key=args[0])
-                article_id = str_to_int(article['uuid'])
-                rating_writer.writerow((author_id, article_id, 2))
+                rating_writer.writerow((id_, article['uuid'], 2))
                 for related in article['relations']:
-                    relation_id = str_to_int(related['uri'].split('/')[-1])
-                    rating_writer.writerow((author_id, relation_id, 1))
+                    relation_id = related['uri'].split('/')[-1]
+                    rating_writer.writerow((id_, relation_id, 1))
 
     with open('user.csv', 'a') as csvfile:
         if len(valid_authors):
@@ -168,6 +166,9 @@ if __name__ == '__main__':
             print 'Total time in minutes: ', (time.time() - start_time) / 60.0
             print reduce(lambda i, x: i + '%s: %s, ' % x, stats.items(), '')
         sys.exit(0)
+    except ImportError, e:
+        print str(e)
+        os._exit(1)
     except KeyboardInterrupt, e:
         raise e
     except SystemExit, e:
