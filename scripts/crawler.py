@@ -33,11 +33,21 @@ import csv
 import json
 import optparse
 import os
-import random
 import sys
 import time
 import traceback
 import urllib
+
+
+class CSVWriter(object):
+
+    def __init__(self, name):
+        self._csv_file = open(name + '.csv', 'a')
+        self._writer = csv.writer(self._csv_file, delimiter=',')
+
+    def __call__(self, key, pairs):
+        for id_, val in pairs:
+            self._writer.writerow([key, id_, val])
 
 
 def api_fetch(endpoint, **kwargs):
@@ -50,53 +60,52 @@ def api_fetch(endpoint, **kwargs):
         return dict(matches=[])
 
 
-def write_records(authors):
+def write_ratings(authors):
     global stats
 
-    with open('ratings.csv', 'a') as csvfile:
-        rating_writer = csv.writer(csvfile, delimiter=',')
+    for author in authors:
+        if isinstance(author, int):
+            continue
+        if authors[authors.index(author) - 1] < options.threshold:
+            # Only select authors that reach the threshold.
+            stats['Threshold not reached'] += 1
+            continue
+        if len(author) < 5 or len(author) > 50:
+            # Simply sanity checks on the name length.
+            stats['Sanity check failed'] += 1
+            continue
+        if ',' in author or author.count(' ') > 5:
+            # Simply sanity checks on unwanted characters.
+            stats['Sanity check failed'] += 1
+            continue
+        try:
+            # Ignore unicode author names for now.
+            author.encode('ascii')
+        except:
+            stats['Unparsable unicode'] += 1
+            continue
 
-        for author in authors:
-            if isinstance(author, int):
-                continue
-            if authors[authors.index(author) - 1] < options.threshold:
-                # Only select authors that reach the threshold.
-                stats['Threshold not reached'] += 1
-                continue
-            if len(author) < 5 or len(author) > 50:
-                # Simply sanity checks on the name length.
-                stats['Sanity check failed'] += 1
-                continue
-            if ',' in author or author.count(' ') > 5:
-                # Simply sanity checks on unwanted characters.
-                continue
-            try:
-                # Ignore unicode author names for now.
-                author.encode('ascii')
-            except:
-                stats['Unparsable unicode'] += 1
-                continue
+        result = api_fetch('author', api_key=args[0], limit=1, q=author)
 
-            result = api_fetch('author', api_key=args[0], limit=1, q=author)
+        if not len(result['matches']):
+            stats['Author id not found'] += 1
+            continue
 
-            if not len(result['matches']):
-                stats['Author id not found'] += 1
-                continue
+        id_ = result['matches'][0]['id']
 
-            id_ = result['matches'][0]['id']
+        result = api_fetch('author/' + id_, api_key=args[0])
 
-            result = api_fetch('author/' + id_, api_key=args[0])
+        if not 'matches' in result:
+            stats['No articles found'] += 1
+            continue
 
-            if not 'matches' in result:
-                stats['No articles found'] += 1
-                continue
+        write = CSVWriter('ratings')
 
-            for uri in list([m['uri'] for m in result['matches']]):
-                article = api_fetch(uri, api_key=args[0])
-                rating_writer.writerow((id_, article['uuid'], 2))
-                for related in article['relations']:
-                    relation_id = related['uri'].split('/')[-1]
-                    rating_writer.writerow((id_, relation_id, 1))
+        for uri in list([m['uri'] for m in result['matches']]):
+            match = api_fetch(uri, api_key=args[0])
+            pairs = [(r['uri'].split('/')[-1], 1) for r in match['relations']]
+            pairs += [(match['uuid'], 2)]
+            write(id_, pairs)
 
     return stats
 
@@ -118,7 +127,7 @@ def main():
     chunks = zip(range(0, l, s), range(s - 1, l, s)) + [(l - (l % s), l - 1)]
 
     for lower, upper in chunks:
-        write_records(facets[lower:upper])
+        write_ratings(facets[lower:upper])
         sys.stdout.write('Processed %s user records.\r' % (upper + 1))
         sys.stdout.flush()
 
