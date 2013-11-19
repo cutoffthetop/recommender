@@ -53,8 +53,6 @@ def api_fetch(endpoint, **kwargs):
 def write_records(authors):
     global stats
 
-    valid_authors = []
-
     with open('ratings.csv', 'a') as csvfile:
         rating_writer = csv.writer(csvfile, delimiter=',')
 
@@ -93,19 +91,12 @@ def write_records(authors):
                 stats['No articles found'] += 1
                 continue
 
-            valid_authors.append(id_)
-
             for uri in list([m['uri'] for m in result['matches']]):
                 article = api_fetch(uri, api_key=args[0])
                 rating_writer.writerow((id_, article['uuid'], 2))
                 for related in article['relations']:
                     relation_id = related['uri'].split('/')[-1]
                     rating_writer.writerow((id_, relation_id, 1))
-
-    with open('user.csv', 'a') as csvfile:
-        if len(valid_authors):
-            user_writer = csv.writer(csvfile, delimiter=',')
-            user_writer.writerow((random.choice(valid_authors),))
 
     return stats
 
