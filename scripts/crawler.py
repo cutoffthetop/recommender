@@ -2,7 +2,8 @@
 """
 SYNOPSIS
 
-    crawler [-t,--threshold] [-h,--help] [-v,--verbose] [--version] api_key
+    crawler [-t,--threshold] [-w, --writer] [-h,--help] [-v,--verbose]
+            [--version] api_key
 
 DESCRIPTION
 
@@ -50,6 +51,21 @@ class CSVWriter(object):
             self._writer.writerow([key, id_, val])
 
 
+class HBaseWriter(object):
+
+    def __init__(self, name):
+        from happybase import Connection
+        from thrift.transport import TTransport
+        try:
+            self._conn = Connection('localhost')
+            self._table = self._conn.table(name)
+        except TTransport.TTransportException, e:
+            raise UserWarning(e)
+
+    def __call__(self, key, pairs):
+        self._table.put(key, dict(pairs))
+
+
 def api_fetch(endpoint, **kwargs):
     base = 'http://api.zeit.de/'
     endpoint = base + endpoint if base not in endpoint else endpoint
@@ -62,6 +78,14 @@ def api_fetch(endpoint, **kwargs):
 
 def write_ratings(authors):
     global stats
+
+    if 'hbase' in options.writer:
+        write = HBaseWriter('ratings')
+    elif 'csv' in options.writer:
+        write = CSVWriter('ratings')
+    else:
+        raise UserWarning('Expected writer to be one of [csv|hbase], got %s.'
+                          % options.writer)
 
     for author in authors:
         if isinstance(author, int):
@@ -154,6 +178,12 @@ if __name__ == '__main__':
             type='int',
             default=5,
             help='minimum article count'
+            )
+        parser.add_option(
+            '-w',
+            '--writer',
+            default='csv',
+            help='output writer to use'
             )
         (options, args) = parser.parse_args()
         if len(args) < 1:
