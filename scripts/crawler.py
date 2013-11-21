@@ -47,8 +47,8 @@ class CSVWriter(object):
         self._writer = csv.writer(self._csv_file, delimiter=',')
 
     def __call__(self, key, pairs):
-        for id_, val in pairs:
-            self._writer.writerow([key, id_, val])
+        for col, val in pairs:
+            self._writer.writerow([key, col, val])
 
 
 class HBaseWriter(object):
@@ -63,7 +63,7 @@ class HBaseWriter(object):
             raise UserWarning(e)
 
     def __call__(self, key, pairs):
-        self._table.put(key, dict(pairs))
+        self._table.put(key, dict([('cf1:' + col, val) for col, val in pairs]))
 
 
 def api_fetch(endpoint, **kwargs):
