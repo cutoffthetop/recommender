@@ -63,7 +63,7 @@ class HBaseWriter(object):
             raise UserWarning(e)
 
     def __call__(self, key, pairs):
-        self._table.put(key, dict([('cf1:' + col, val) for col, val in pairs]))
+        self._table.put(key, dict([('cf1:' + c, str(v)) for c, v in pairs]))
 
 
 def api_fetch(endpoint, **kwargs):
@@ -122,8 +122,6 @@ def write_ratings(authors):
         if not 'matches' in result:
             stats['No articles found'] += 1
             continue
-
-        write = CSVWriter('ratings')
 
         for uri in list([m['uri'] for m in result['matches']]):
             match = api_fetch(uri, api_key=args[0])
