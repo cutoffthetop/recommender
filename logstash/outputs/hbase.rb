@@ -2,7 +2,7 @@
 require "logstash/outputs/base"
 require "logstash/namespace"
 
-class LogStash::Outputs:HBase < LogStash::Outputs::Base
+class LogStash::Outputs::HBase < LogStash::Outputs::Base
 
   config_name "hbase"
   milestone 2
