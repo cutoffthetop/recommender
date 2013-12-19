@@ -3,6 +3,7 @@
 import hashlib
 import random
 import time
+import sys
 
 
 links = [
@@ -112,7 +113,8 @@ links = [
 def main():
     link = links[random.randint(0, 99)]
     user = hashlib.md5(str(random.randint(0, 100))).hexdigest()
-    print "%s,foo=bar; wt3_eid=%s; bar=foo;" % (link, user)
+    sys.stdout.write("%s,foo=bar; wt3_eid=%s; bar=foo;\n" % (link, user))
+    sys.stdout.flush()
 
 if __name__ == '__main__':
     while True:
