@@ -12,13 +12,13 @@ Currently two machines are needed:
 
 ## Varnish
 
-* install `openbsd-inetd` or equivalent
+* Install `openbsd-inetd` or equivalent
 
 ```shell
 apt-get install openbsd-inetd
 ```
 
-* copy the contents from `varnish/etc/inetd.conf` to `/etc/inetd.conf`
+* Copy the contents from `varnish/etc/inetd.conf` to `/etc/inetd.conf`
 * Reload the inetd config
 
 ```shell
