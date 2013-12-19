@@ -18,7 +18,12 @@ Currently two machines are needed:
 apt-get install openbsd-inetd
 ```
 
-* Copy the contents from `varnish/etc/inetd.conf` to `/etc/inetd.conf`
+* Configure inetd for varnishncsa
+
+```shell
+cat varnish/etc/inetd.conf >> /etc/inetd.conf
+```
+
 * Reload the inetd config
 
 ```shell
