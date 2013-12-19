@@ -1,6 +1,7 @@
 *.csv
 *.tmp
 *.jar
+*.png
 
 *.py[cod]
 
