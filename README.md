@@ -81,7 +81,7 @@ apt-get update
 * Install required packages
 
 ```shell
-apt-get install openjdk-6-jre python-dev python-setuptools git rabbitmq-server upstart
+apt-get install openjdk-6-jre python-dev python-setuptools rabbitmq-server upstart
 ```
 
 * Ensure rabbit is running
