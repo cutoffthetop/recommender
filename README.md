@@ -43,7 +43,8 @@ useradd -m logstash
 * Copy the logstash config file
 
 ```shell
-mkdir /etc/logstash && cp logstash/etc/logstash/agent.conf /etc/logstash/
+mkdir /etc/logstash
+cp logstash/etc/logstash/agent.conf /etc/logstash/
 ```
 
 * Paste the varnish host name into this line in /etc/logstash/agent.conf
@@ -113,5 +114,5 @@ easy_install pika
 * Run the simple python message consumer
 
 ```shell
-python scripts/consumer zr_spout logstash
+python scripts/consumer.py zr_spout logstash
 ```
