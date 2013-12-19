@@ -41,7 +41,7 @@ def callback(ch, method, properties, body):
 
 
 def main():
-    parameters = pika.ConnectionParameters(host=options.name)
+    parameters = pika.ConnectionParameters(host=options.name, port=5672)
     connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
