@@ -89,6 +89,16 @@ sudo apt-get install openjdk-6-jre python-setuptools rabbitmq-server upstart
 sudo rabbitmqctl status
 ```
 
+* Install pika
+
+```shell
+sudo easy_install pika
+```
+
+### Ubuntu
+
+If using ubuntu, logstash can be configured as a daemon using upstart.
+
 * Copy the logstash upstart config
 
 ```shell
@@ -101,10 +111,17 @@ sudo cp logstash/etc/init/logstash-agent.conf /etc/init/
 initctl start logstash-agent
 ```
 
-* Install pika
+### Debian
+
+If using debian, logstash should be configured using update-rc.d.    
+Note: Make sure your PATH includes the sbin folders.
 
 ```shell
-sudo easy_install pika
+sudo cp logstash/etc/init.d/logstash-agent /etc/init.d/
+```
+
+```shell
+update-rc.d logstash-shipper defaults
 ```
 
 ## Consumer
