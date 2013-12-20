@@ -1,7 +1,6 @@
 # zeit.recommend
 
-This guide describes how to setup the Zeit Recommend service.    
-(Most commands must be run as root.)
+This guide describes how to setup the Zeit Recommend service.
 
 Currently two machines are needed:
 
@@ -15,13 +14,13 @@ Currently two machines are needed:
 * Install `openbsd-inetd` or equivalent
 
 ```shell
-apt-get install openbsd-inetd
+sudo apt-get install openbsd-inetd
 ```
 
 * Configure inetd for varnishncsa
 
 ```shell
-cat varnish/etc/inetd.conf >> /etc/inetd.conf
+sudo cat varnish/etc/inetd.conf >> /etc/inetd.conf
 ```
 
 * Reload the inetd config
@@ -37,14 +36,14 @@ sudo /etc/init.d/openbsd-inetd restart
 * Add a new user for logstash
 
 ```shell
-useradd -m logstash
+sudo useradd -m logstash
 ```
 
 * Copy the logstash config file
 
 ```shell
-mkdir /etc/logstash
-cp logstash/etc/logstash/agent.conf /etc/logstash/
+sudo mkdir /etc/logstash
+sudo cp logstash/etc/logstash/agent.conf /etc/logstash/
 ```
 
 * Paste the varnish host name into this line in /etc/logstash/agent.conf
@@ -56,8 +55,7 @@ host => "{INSERT HOST URL HERE}"
 * Download logstash jar file
 
 ```shell
-curl https://download.elasticsearch.org/logstash/logstash/logstash-1.2.2-flatjar.jar \
-/home/logstash/logstash.jar
+sudo curl https://download.elasticsearch.org/logstash/logstash/logstash-1.2.2-flatjar.jar > /home/logstash/logstash.jar
 ```
 
 * Add the following line to your /etc/apt/sources.list
@@ -70,31 +68,31 @@ deb http://www.rabbitmq.com/debian/ testing main
 
 ```shell
 wget http://www.rabbitmq.com/rabbitmq-signing-key-public.asc
-apt-key add rabbitmq-signing-key-public.asc
+sudo apt-key add rabbitmq-signing-key-public.asc
 ```
 
 * Update package index
 
 ```shell
-apt-get update
+sudo apt-get update
 ```
 
 * Install required packages
 
 ```shell
-apt-get install openjdk-6-jre python-dev python-setuptools rabbitmq-server upstart
+sudo apt-get install openjdk-6-jre python-setuptools rabbitmq-server upstart
 ```
 
 * Ensure rabbit is running
 
 ```shell
-rabbitmqctl status
+sudo rabbitmqctl status
 ```
 
 * Copy the logstash upstart config
 
 ```shell
-cp logstash/etc/init/logstash-agent.conf /etc/init/
+sudo cp logstash/etc/init/logstash-agent.conf /etc/init/
 ```
 
 * Launch logstash using upstart
@@ -106,7 +104,7 @@ initctl start logstash-agent
 * Install pika
 
 ```shell
-easy_install pika
+sudo easy_install pika
 ```
 
 ## Consumer
