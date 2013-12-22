@@ -1,8 +1,26 @@
+# Generic ignores
 *.csv
 *.tmp
 *.jar
 *.png
 
+# Java and Clojure
+*.class
+.classpath
+.project
+*.jar
+.lein-deps-sum
+*.iml
+classes/
+lib/
+target/
+
+# Package Files
+*.jar
+*.war
+*.ear
+
+# Python ignores
 *.py[cod]
 
 # C extensions
