@@ -1,15 +1,24 @@
 # -*- coding: utf-8 -*-
 
 from storm import Spout, emit, log
-from random import choice
-from time import sleep
 from uuid import uuid4
+
+import pika
 
 
 class RabbitMQSpout(Spout):
     def initialize(self, conf, context):
         emit(['spout initializing'])
         self.pending = {}
+
+        host = ''
+        parameters = pika.ConnectionParameters(host=host, port=5672)
+        connection = pika.BlockingConnection(parameters=parameters)
+        self.channel = connection.channel()
+        self.channel.exchange_declare(exchange='zr_spout', type='direct')
+        self.queue = self.channel.queue_declare(exclusive=True).method.queue
+        self.channel.queue_bind(exchange='zr_spout', queue=self.queue,
+                                routing_key='logstash')
 
     def ack(self, id):
         del self.pending[id]
@@ -19,10 +28,9 @@ class RabbitMQSpout(Spout):
         emit([self.pending[id]], id=id)
 
     def nextTuple(self):
-        sleep(1)
-        word = choice(['Hot Chip', 'Kavinsky' 'London Grammar', 'MS MR'])
+        message = self.channel.basic_get(queue=self.queue, no_ack=True)[2]
         id = str(uuid4())
-        self.pending[id] = word
-        emit([word], id=id)
+        self.pending[id] = message
+        emit([message], id=id)
 
 RabbitMQSpout().run()
