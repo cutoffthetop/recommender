@@ -121,7 +121,7 @@ sudo cp logstash/etc/init.d/logstash-agent /etc/init.d/
 ```
 
 ```shell
-update-rc.d logstash-shipper defaults
+update-rc.d logstash-agent defaults
 ```
 
 ## Consumer
