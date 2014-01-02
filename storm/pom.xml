@@ -77,7 +77,7 @@
     <sourceDirectory>src/jvm</sourceDirectory>
     <resources>
       <resource>
-        <directory>${basedir}/multilang</directory>
+        <directory>src/py</directory>
       </resource>
     </resources>
 

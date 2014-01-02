@@ -63,16 +63,16 @@ public class RecommenderTopology {
     TopologyBuilder builder = new TopologyBuilder();
 
     builder.setSpout("rabbit", new RabbitMQ(), 1);
-    builder.setBolt("split", new WordCount(), 1).shuffleGrouping("rabbit");
+    builder.setBolt("count", new WordCount(), 1).shuffleGrouping("rabbit");
 
     Config conf = new Config();
     conf.setDebug(true);
     conf.setMaxTaskParallelism(3);
 
     LocalCluster cluster = new LocalCluster();
-    cluster.submitTopology("word-count", conf, builder.createTopology());
+    cluster.submitTopology("rabbit-count", conf, builder.createTopology());
 
-    Thread.sleep(10000);
+    Thread.sleep(900000);
 
     cluster.shutdown();
   }
