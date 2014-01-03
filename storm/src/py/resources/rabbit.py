@@ -32,10 +32,8 @@ class RabbitMQSpout(Spout):
         # TODO: Investigate (None, None, None) issue!
         if raw:
             parsed = json.loads(raw)
-            user_str = urllib.unquote(parsed['user'])
-            user_id = user_str.strip('"').strip(';').replace('|', '')
+            user = urllib.unquote(parsed['user']).strip('";').replace('|', '')
             ts = mktime(strptime(parsed['timestamp'], '%Y-%m-%d %H:%M:%S %Z'))
-            message = [str(int(ts)), parsed['path'], user_id]
-            emit(message, id=str(uuid4()))
+            emit([int(ts * 1000), parsed['path'], user], id=str(uuid4()))
 
 RabbitMQSpout().run()
