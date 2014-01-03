@@ -11,7 +11,7 @@ json_encode = lambda x: json.dumps(x)
 json_decode = lambda x: json.loads(x)
 
 
-#reads lines and reconstructs newlines appropriately
+# Reads lines and reconstructs newlines appropriately
 def readMsg():
     msg = ''
     while True:
@@ -24,7 +24,7 @@ def readMsg():
 MODE = None
 ANCHOR_TUPLE = None
 
-#queue up commands we read while trying to read taskids
+# Queue up commands we read while trying to read taskids
 pending_commands = collections.deque()
 
 
@@ -38,7 +38,7 @@ def readTaskIds():
             msg = readMsg()
         return msg
 
-#queue up taskids we read while trying to read commands/tuples
+# Queue up taskids we read while trying to read commands/tuples
 pending_taskids = collections.deque()
 
 
