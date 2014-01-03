@@ -8,7 +8,8 @@ from storm import Bolt, log
 class ESIndexBolt(Bolt):
     def initialize(self, conf, context):
         log('bolt initializing')
-        self.es = Elasticsearch()
+        # TODO: Make connection params configurable.
+        self.es = Elasticsearch(hosts={'host': 'localhost', 'port': 9200})
 
     def process(self, tup):
         event = dict(
