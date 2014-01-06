@@ -42,22 +42,25 @@ class ESIndexBolt(Bolt):
             path=tup.values[1]
             )
 
-        params = dict(
-            index='observations',
-            id=tup.values[2],
-            doc_type='user'
+        kwargs = dict(
+            id=tup.values[2]
             )
 
         try:
-            events = self.es.get(**params)['_source']['events']
-            params['body'] = {'events': events + [event]}
+            events = self.es.get('observations', tup.values[2], 'user')
+            body = {'events': events['_source']['events'] + [event]}
         except NotFoundError:
-            params['body'] = {'events': [event]}
-            params['op_type'] = 'create'
+            kwargs['op_type'] = 'create'
+            body = {'events': [event]}
         except TransportError, e:
             # TODO: What is going wrong here?
-            log('[TransportError] %s' % e)
+            log('[TransportError] Get failed: %s' % e)
+            return
 
-        self.es.index(**params)
+        try:
+            self.es.index('observations', 'user', body, **kwargs)
+        except TransportError, e:
+            # TODO: What is going wrong here?
+            log('[TransportError] Index failed: %s' % e)
 
 ESIndexBolt().run()
