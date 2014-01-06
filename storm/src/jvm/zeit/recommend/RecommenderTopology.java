@@ -3,14 +3,14 @@ package zeit.recommend;
 import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.spout.ShellSpout;
+import backtype.storm.spout.SpoutOutputCollector;
 import backtype.storm.task.ShellBolt;
 import backtype.storm.task.TopologyContext;
-import backtype.storm.topology.*;
-import backtype.storm.topology.base.BaseBasicBolt;
+import backtype.storm.topology.IRichBolt;
+import backtype.storm.topology.IRichSpout;
+import backtype.storm.topology.OutputFieldsDeclarer;
+import backtype.storm.topology.TopologyBuilder;
 import backtype.storm.tuple.Fields;
-import backtype.storm.tuple.Tuple;
-import backtype.storm.tuple.Values;
-import backtype.storm.spout.SpoutOutputCollector;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -20,7 +20,7 @@ public class RecommenderTopology {
   public static class RabbitMQ extends ShellSpout implements IRichSpout {
 
     public RabbitMQ() {
-      super("python", "rabbit.py");
+      super("python", "rabbitmq.py");
     }
 
     @Override
@@ -39,10 +39,26 @@ public class RecommenderTopology {
     }
   }
 
-  public static class ESIndex extends ShellBolt implements IRichBolt {
+  public static class ObservationBolt extends ShellBolt implements IRichBolt {
 
-    public ESIndex() {
-      super("python", "index.py");
+    public ObservationBolt() {
+      super("python", "observation.py");
+    }
+
+    @Override
+    public void declareOutputFields(OutputFieldsDeclarer declarer) {
+    }
+
+    @Override
+    public Map<String, Object> getComponentConfiguration() {
+      return new HashMap<String, Object>();
+    }
+  }
+
+  public static class ContentBolt extends ShellBolt implements IRichBolt {
+
+    public ContentBolt() {
+      super("python", "content.py");
     }
 
     @Override
@@ -59,17 +75,18 @@ public class RecommenderTopology {
 
     TopologyBuilder builder = new TopologyBuilder();
 
-    builder.setSpout("rabbitmq", new RabbitMQ(), 2);
-    builder.setBolt("esindex", new ESIndex(), 2).shuffleGrouping("rabbitmq");
+    builder.setSpout("rabbitmq", new RabbitMQ(), 1);
+    builder.setBolt("observation", new ObservationBolt(), 1).shuffleGrouping("rabbitmq");
+    builder.setBolt("content", new ContentBolt(), 1).shuffleGrouping("rabbitmq");
 
     Config conf = new Config();
     conf.setDebug(false);
-    conf.setMaxTaskParallelism(4);
+    conf.setMaxTaskParallelism(3);
 
     LocalCluster cluster = new LocalCluster();
     cluster.submitTopology("zeit-recommend", conf, builder.createTopology());
 
-    Thread.sleep(20 * 60 * 1000);
+    Thread.sleep(10 * 60 * 1000);
 
     cluster.shutdown();
   }

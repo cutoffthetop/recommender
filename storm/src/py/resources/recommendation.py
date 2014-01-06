@@ -16,7 +16,8 @@ indict = dict()
 
 for i in range(len(pool)):
     if 'events' in pool[i]['_source']:
-        indict[pool[i]['_id']] = list([j['path'] for j in pool[i]['_source']['events']])
+        indict[pool[i]['_id']] = list([j['path'] for j in
+                                      pool[i]['_source']['events']])
 
 # Initialize crab objects
 model = MatrixBooleanPrefDataModel(indict)
@@ -24,7 +25,8 @@ similarity = UserSimilarity(model, loglikehood_coefficient)
 recommender = UserBasedRecommender(model, similarity, with_preference=False)
 
 # How well is the user-base compressable?
-compressed = set([','.join(set(model.preferences_from_user(user))) for user in model.user_ids()])
+compressed = set([','.join(set(model.preferences_from_user(user))) for user
+                  in model.user_ids()])
 ratio = len(model.user_ids())/float(len(compressed))
 saving = 1 - (float(len(compressed))/len(model.user_ids()))
 print ratio
@@ -57,7 +59,7 @@ class ElasticsearchDataModel(BaseDataModel):
         return 1.0
 
 
-class RecommenderBolt(Bolt):
+class RecommendationBolt(Bolt):
     def initialize(self, conf, context):
         log('Bolt id-%s is initializing.' % id(self))
         # TODO: Make connection params configurable.
@@ -66,4 +68,4 @@ class RecommenderBolt(Bolt):
     def process(self, tup):
         log('[Process] Tuple received: %s' % tup)
 
-#RecommenderBolt().run()
+#RecommendationBolt().run()
