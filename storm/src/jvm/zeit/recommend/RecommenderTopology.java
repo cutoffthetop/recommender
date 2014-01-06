@@ -59,17 +59,17 @@ public class RecommenderTopology {
 
     TopologyBuilder builder = new TopologyBuilder();
 
-    builder.setSpout("rabbitmq", new RabbitMQ(), 1);
-    builder.setBolt("esindex", new ESIndex(), 1).shuffleGrouping("rabbitmq");
+    builder.setSpout("rabbitmq", new RabbitMQ(), 2);
+    builder.setBolt("esindex", new ESIndex(), 2).shuffleGrouping("rabbitmq");
 
     Config conf = new Config();
-    conf.setDebug(true);
-    conf.setMaxTaskParallelism(3);
+    conf.setDebug(false);
+    conf.setMaxTaskParallelism(4);
 
     LocalCluster cluster = new LocalCluster();
     cluster.submitTopology("zeit-recommend", conf, builder.createTopology());
 
-    Thread.sleep(20000);
+    Thread.sleep(20 * 60 * 1000);
 
     cluster.shutdown();
   }
