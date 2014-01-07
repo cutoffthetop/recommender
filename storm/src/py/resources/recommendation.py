@@ -3,39 +3,73 @@
 from elasticsearch import Elasticsearch
 from scikits.crab.metrics import loglikehood_coefficient
 from scikits.crab.models import MatrixBooleanPrefDataModel
-from scikits.crab.recommenders.knn import UserBasedRecommender
+#from scikits.crab.recommenders.knn import UserBasedRecommender
+from scikits.crab.recommenders.svd.classes import MatrixFactorBasedRecommender
 from scikits.crab.similarities import UserSimilarity
 from scikits.crab.models.base import BaseDataModel
 from storm import Bolt, log
 from numpy import ndarray
+from hashlib import md5
+
+
+__import__('logging').getLogger('crab').setLevel('DEBUG')
 
 # Transform elasticsearch output to work with crab
 es = Elasticsearch(hosts=[{'host': 'localhost', 'port': 9200}])
-pool = es.search(from_=500, size=40000)['hits']['hits']
-indict = dict()
+pool = es.search(from_=2000, size=2000)['hits']['hits']
+compressed, uncompressed = dict(), dict()
 
-for i in range(len(pool)):
-    if 'events' in pool[i]['_source']:
-        indict[pool[i]['_id']] = list([j['path'] for j in
-                                      pool[i]['_source']['events']])
-
-# Initialize crab objects
-model = MatrixBooleanPrefDataModel(indict)
-similarity = UserSimilarity(model, loglikehood_coefficient)
-recommender = UserBasedRecommender(model, similarity, with_preference=False)
+for i in 200:
+    if 'events' not in pool[i]['_source']:
+        continue
+    events = list(set([j['path'] for j in pool[i]['_source']['events']]))
+    uncompressed[pool[i]['_id']] = events
+    if len(events) > 1:
+        compressed[md5(''.join(sorted(events))).hexdigest()] = events
 
 # How well is the user-base compressable?
-compressed = set([','.join(set(model.preferences_from_user(user))) for user
-                  in model.user_ids()])
-ratio = len(model.user_ids())/float(len(compressed))
-saving = 1 - (float(len(compressed))/len(model.user_ids()))
-print ratio
+print 'ratio', len(uncompressed)/float(len(compressed))
+print 'saving', 1 - (float(len(compressed))/len(uncompressed))
+
+source = compressed
+
+
+# Initialize crab objects
+model = MatrixBooleanPrefDataModel(source)
+similarity = UserSimilarity(model, loglikehood_coefficient)
+#recommender = UserBasedRecommender(model, similarity, with_preference=False)
 
 # Randomly select a user and calculate a recommendation
-user_ids = model.user_ids()
-user = user_ids[__import__('random').randint(0, user_ids.size - 1)]
-__import__('pprint').pprint(indict[user])
-__import__('pprint').pprint(recommender.recommend(user, how_many=5))
+user = source.keys()[__import__('random').randint(0, len(source) - 1)]
+
+recommender = MatrixFactorBasedRecommender(model=model, n_features=2)
+
+
+
+
+result = recommender.recommend(user, how_many=10)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+__import__('pprint').pprint(source[user])
+__import__('pprint').pprint(result)
+
 
 
 # Could a custom data model speed up transformation?
