@@ -17,9 +17,9 @@ import java.util.Map;
 
 public class RecommenderTopology {
 
-  public static class RabbitMQ extends ShellSpout implements IRichSpout {
+  public static class RabbitMQSpout extends ShellSpout implements IRichSpout {
 
-    public RabbitMQ() {
+    public RabbitMQSpout() {
       super("python", "rabbitmq.py");
     }
 
@@ -75,7 +75,7 @@ public class RecommenderTopology {
 
     TopologyBuilder builder = new TopologyBuilder();
 
-    builder.setSpout("rabbitmq", new RabbitMQ(), 1);
+    builder.setSpout("rabbitmq", new RabbitMQSpout(), 1);
     builder.setBolt("observation", new ObservationBolt(), 1).shuffleGrouping("rabbitmq");
     builder.setBolt("content", new ContentBolt(), 1).shuffleGrouping("rabbitmq");
 
