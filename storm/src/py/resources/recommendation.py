@@ -1,96 +1,48 @@
 # -*- coding: utf-8 -*-
 
 from elasticsearch import Elasticsearch
-from scikits.crab.metrics import loglikehood_coefficient
-from scikits.crab.models import MatrixBooleanPrefDataModel
-#from scikits.crab.recommenders.knn import UserBasedRecommender
-from scikits.crab.recommenders.svd.classes import MatrixFactorBasedRecommender
-from scikits.crab.similarities import UserSimilarity
-from scikits.crab.models.base import BaseDataModel
 from storm import Bolt, log
-from numpy import ndarray
-from hashlib import md5
+import numpy as np
 
 
-__import__('logging').getLogger('crab').setLevel('DEBUG')
-
-# Transform elasticsearch output to work with crab
-es = Elasticsearch(hosts=[{'host': 'localhost', 'port': 9200}])
-pool = es.search(from_=2000, size=2000)['hits']['hits']
-compressed, uncompressed = dict(), dict()
-
-for i in 200:
-    if 'events' not in pool[i]['_source']:
-        continue
-    events = list(set([j['path'] for j in pool[i]['_source']['events']]))
-    uncompressed[pool[i]['_id']] = events
-    if len(events) > 1:
-        compressed[md5(''.join(sorted(events))).hexdigest()] = events
-
-# How well is the user-base compressable?
-print 'ratio', len(uncompressed)/float(len(compressed))
-print 'saving', 1 - (float(len(compressed))/len(uncompressed))
-
-source = compressed
+def stream(amount=100, threshold=1):
+    es = Elasticsearch(hosts=[{'host': 'localhost', 'port': 9200}])
+    pool = es.search(from_=1000, size=amount)['hits']['hits']
+    for p in range(len(pool)):
+        if 'events' not in pool[p]['_source']:
+            continue
+        events = list(set([i['path'] for i in pool[p]['_source']['events']]))
+        if len(events) > threshold:
+            yield pool[p]['_id'], events
 
 
-# Initialize crab objects
-model = MatrixBooleanPrefDataModel(source)
-similarity = UserSimilarity(model, loglikehood_coefficient)
-#recommender = UserBasedRecommender(model, similarity, with_preference=False)
+def expand(src):
+    values = set([cell for sublist in src.values() for cell in sublist])
+    for row in src.keys():
+        column = list()
+        for cell in values:
+            column.append(1 if cell in src.get(row) else 0)
+        yield column
 
-# Randomly select a user and calculate a recommendation
-user = source.keys()[__import__('random').randint(0, len(source) - 1)]
+model = list(expand(dict(stream(amount=3000))))
+training = np.array(model[:2000])
 
-recommender = MatrixFactorBasedRecommender(model=model, n_features=2)
+full_user_space, full_singular_vector, full_item_space = np.linalg.svd(
+    training, full_matrices=False)
 
+full_singular_matrix = np.diag(full_singular_vector)
 
+r = full_singular_matrix.shape[0]
+k = 100
 
+# TODO: Implement this with views?
+reduced_user_space = full_user_space[:-(r-k), :]
+reduced_singular_matrix = np.diag(full_singular_vector[:k])
+reduced_item_space = full_item_space[:, :-(r-k)]
 
-result = recommender.recommend(user, how_many=10)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-__import__('pprint').pprint(source[user])
-__import__('pprint').pprint(result)
-
-
-
-# Could a custom data model speed up transformation?
-class ElasticsearchDataModel(BaseDataModel):
-    def __init__(self):
-        super(BaseDataModel, self).__init__()
-
-    def user_ids(self):
-        return ndarray()
-
-    def preference_values_from_user(self, user_id):
-        return [0]
-
-    def preferences_from_user(self, user_id, order_by_id=True):
-        return [(0, 1.0)]
-
-    def has_preference_values(self):
-        return False
-
-    def maximum_preference_value(self):
-        return 1.0
+#testing = np.array(model[-1])
+#projection = user * user.transpose() * testing
+#import pdb; pdb.set_trace()
 
 
 class RecommendationBolt(Bolt):
