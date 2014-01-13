@@ -16,7 +16,7 @@ class ObservationBolt(Bolt):
 
         try:
             ic.get_mapping(
-                index='observation',
+                index='observations',
                 doc_type='user'
                 )
         except NotFoundError:
@@ -30,7 +30,7 @@ class ObservationBolt(Bolt):
                     }
                 }
             ic.put_mapping(
-                index='observation',
+                index='observations',
                 ignore_conflicts=True,
                 doc_type='user',
                 body=doc_type
@@ -47,7 +47,7 @@ class ObservationBolt(Bolt):
             )
 
         try:
-            events = self.es.get('observation', tup.values[2], 'user')
+            events = self.es.get('observations', tup.values[2], 'user')
             body = {'events': events['_source']['events'] + [event]}
         except NotFoundError:
             kwargs['op_type'] = 'create'
@@ -58,7 +58,7 @@ class ObservationBolt(Bolt):
             return
 
         try:
-            self.es.index('observation', 'user', body, **kwargs)
+            self.es.index('observations', 'user', body, **kwargs)
         except TransportError, e:
             # TODO: What is going wrong here?
             log('[TransportError] Index failed: %s' % e)
