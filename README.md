@@ -137,6 +137,16 @@ scripts/consumer.py zr_spout logstash
 
 You can run the storm topology locally or deploy it to a cluster.
 
+### Development
+
+To set up a development environment follow the steps below.
+
+* Make sure you have Sun or Oracle JDK version 6 installed.
+* Install the latest version of the IntelliJ IDEA IDE.
+* Select `Open File`, `Import Project...` and choose the `storm` directory.
+* Import from `Maven` model and make sure the option `Import Maven projects automatically` is checked.
+* Now select the `zeit.recommend` project and an appropriate JDK.
+
 ### Local mode
 
 * Make sure, you have Maven and storm installed on your machine.
