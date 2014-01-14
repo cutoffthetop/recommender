@@ -1,5 +1,15 @@
 # -*- coding: utf-8 -*-
 
+"""
+    zeit.recommend.zonapi
+    ~~~~~~~~~~~~~~~~~~~~~
+
+    This module has no description.
+
+    Copyright: (c) 2013 by Nicolas Drebenstedt.
+    License: BSD, see LICENSE for more details.
+"""
+
 from storm import Spout, emit, log
 from uuid import uuid4
 from time import mktime, strptime

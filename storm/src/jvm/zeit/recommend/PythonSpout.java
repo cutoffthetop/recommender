@@ -10,6 +10,15 @@ import backtype.storm.tuple.Fields;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * zeit.recommend.PythonSpout
+ *
+ * This class has no description.
+ *
+ * Copyright: (c) 2013 by Nicolas Drebenstedt.
+ * License: BSD, see LICENSE for more details.
+ */
+
 public class PythonSpout extends ShellSpout implements IRichSpout {
 
   private Fields fields;

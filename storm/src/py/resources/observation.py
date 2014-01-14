@@ -1,5 +1,15 @@
 # -*- coding: utf-8 -*-
 
+"""
+    zeit.recommend.observation
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    This module has no description.
+
+    Copyright: (c) 2013 by Nicolas Drebenstedt.
+    License: BSD, see LICENSE for more details.
+"""
+
 from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
 from elasticsearch.exceptions import NotFoundError

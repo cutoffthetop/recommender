@@ -8,6 +8,15 @@ import backtype.storm.tuple.Fields;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * zeit.recommend.PythonBolt
+ *
+ * This class has no description.
+ *
+ * Copyright: (c) 2013 by Nicolas Drebenstedt.
+ * License: BSD, see LICENSE for more details.
+ */
+
 public class PythonBolt extends ShellBolt implements IRichBolt {
 
   private Fields fields;

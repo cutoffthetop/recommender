@@ -4,6 +4,15 @@ import backtype.storm.Config;
 import backtype.storm.LocalCluster;
 import backtype.storm.topology.TopologyBuilder;
 
+/**
+ * zeit.recommend.Recommender
+ *
+ * This class has no description.
+ *
+ * Copyright: (c) 2013 by Nicolas Drebenstedt.
+ * License: BSD, see LICENSE for more details.
+ */
+
 public class Recommender {
 
   public static void main(String[] args) throws Exception {
