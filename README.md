@@ -2,10 +2,11 @@
 
 This guide describes how to setup the Zeit Recommend service.
 
-Currently two machines are needed:
+Currently three machines are needed:
 
 * Varnish caching server
 * RabbitMQ queuing server
+* Storm processing server
 
 -------------------------------------------------------------------------------
 
@@ -124,10 +125,28 @@ sudo cp logstash/etc/init.d/logstash-agent /etc/init.d/
 update-rc.d logstash-agent defaults
 ```
 
-## Consumer
+### Consumer
 
-* Run the simple python message consumer
+* Run a simple AMPQ consumer to check your connection status.
 
 ```shell
-python scripts/consumer.py zr_spout logstash
+scripts/consumer.py zr_spout logstash
 ```
+
+## Storm
+
+You can run the storm topology locally or deploy it to a cluster.
+
+### Local mode
+
+* Make sure, you have Maven and storm installed on your machine.
+
+* Then change to the `storm/` directory and run
+
+```shell
+mvn -f pom.xml compile exec:java -Dstorm.topology=zeit.recommend.RecommenderTopology
+```
+
+### Cluster setup
+
+Coming soon.
