@@ -4,14 +4,14 @@ from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
 from elasticsearch.exceptions import NotFoundError
 from elasticsearch.exceptions import TransportError
-from storm import Bolt, log
+from storm import Bolt, log, emit
 
 
 class ObservationBolt(Bolt):
     def initialize(self, conf, context):
-        log('Bolt id-%s is initializing.' % id(self))
-        # TODO: Make connection params configurable.
-        self.es = Elasticsearch(hosts=[{'host': 'localhost', 'port': 9200}])
+        host = conf.get('zeit.recommend.elasticsearch.host', 'localhost')
+        port = conf.get('zeit.recommend.elasticsearch.port', 9200)
+        self.es = Elasticsearch(hosts=[{'host': host, 'port': port}])
         ic = IndicesClient(self.es)
 
         try:
@@ -47,20 +47,25 @@ class ObservationBolt(Bolt):
             )
 
         try:
-            events = self.es.get('observations', tup.values[2], 'user')
+            events = self.es.get('observations', kwargs['id'], 'user')
             body = {'events': events['_source']['events'] + [event]}
         except NotFoundError:
             kwargs['op_type'] = 'create'
             body = {'events': [event]}
         except TransportError, e:
             # TODO: What is going wrong here?
-            log('[TransportError] Get failed: %s' % e)
+            log('[ObservationBolt] TransportError, get failed: %s' % e)
             return
+
+        events = list(set(i['path'] for i in body['events']))
+        # Emitting   (user, paths  )
+        # Encoded as (user, (path*))
+        emit([kwargs['id'], events])
 
         try:
             self.es.index('observations', 'user', body, **kwargs)
         except TransportError, e:
             # TODO: What is going wrong here?
-            log('[TransportError] Index failed: %s' % e)
+            log('[ObservationBolt] TransportError, index failed: %s' % e)
 
 ObservationBolt().run()

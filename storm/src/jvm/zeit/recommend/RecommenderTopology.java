@@ -34,8 +34,8 @@ public class RecommenderTopology {
     }
 
     @Override
-    public void open(Map stormConf, TopologyContext context, SpoutOutputCollector collector) {
-      super.open(stormConf, context, collector);
+    public void open(Map conf, TopologyContext context, SpoutOutputCollector collector) {
+      super.open(conf, context, collector);
     }
   }
 
@@ -47,6 +47,7 @@ public class RecommenderTopology {
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
+      declarer.declare(new Fields("user", "paths"));
     }
 
     @Override
@@ -55,14 +56,15 @@ public class RecommenderTopology {
     }
   }
 
-  public static class ContentBolt extends ShellBolt implements IRichBolt {
+  public static class RecommendationBolt extends ShellBolt implements IRichBolt {
 
-    public ContentBolt() {
-      super("python", "content.py");
+    public RecommendationBolt() {
+      super("python", "recommendation.py");
     }
 
     @Override
     public void declareOutputFields(OutputFieldsDeclarer declarer) {
+      declarer.declare(new Fields("user", "paths", "recommendations"));
     }
 
     @Override
@@ -77,16 +79,28 @@ public class RecommenderTopology {
 
     builder.setSpout("rabbitmq", new RabbitMQSpout(), 1);
     builder.setBolt("observation", new ObservationBolt(), 1).shuffleGrouping("rabbitmq");
-    //builder.setBolt("content", new ContentBolt(), 1).shuffleGrouping("rabbitmq");
+    builder.setBolt("recommendation", new RecommendationBolt(), 1).shuffleGrouping("observation");
 
     Config conf = new Config();
-    conf.setDebug(false);
-    conf.setMaxTaskParallelism(2);
+    conf.setDebug(true);
+    conf.setMaxTaskParallelism(1);
+
+    conf.put("zeit.recommend.elasticsearch.host", "localhost");
+    conf.put("zeit.recommend.elasticsearch.port", 9200);
+    conf.put("zeit.recommend.rabbitmq.exchange", "zr_spout");
+    conf.put("zeit.recommend.rabbitmq.host", "217.13.68.236");
+    conf.put("zeit.recommend.rabbitmq.key", "logstash");
+    conf.put("zeit.recommend.rabbitmq.port", 5672);
+    conf.put("zeit.recommend.rabbitmq.throughput", 15);
+    conf.put("zeit.recommend.svd.base", 5000);
+    conf.put("zeit.recommend.svd.rank", 250);
+    conf.put("zeit.recommend.zonapi.host", "217.13.68.229");
+    conf.put("zeit.recommend.zonapi.port", 8983);
 
     LocalCluster cluster = new LocalCluster();
     cluster.submitTopology("zeit-recommend", conf, builder.createTopology());
 
-    Thread.sleep(120 * 60 * 1000);
+    Thread.sleep(1 * 60 * 1000);
 
     cluster.shutdown();
   }
