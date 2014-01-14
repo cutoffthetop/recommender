@@ -144,7 +144,7 @@ You can run the storm topology locally or deploy it to a cluster.
 * Then change to the `storm/` directory and run
 
 ```shell
-mvn -f pom.xml compile exec:java -Dstorm.topology=zeit.recommend.RecommenderTopology
+mvn -f pom.xml compile exec:java -Dstorm.topology=zeit.recommend.Recommender
 ```
 
 ### Cluster setup

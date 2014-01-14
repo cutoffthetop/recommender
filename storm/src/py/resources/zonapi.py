@@ -9,13 +9,12 @@ import urllib
 
 class ZonAPISpout(Spout):
     def initialize(self, conf, context):
-        # TODO: Make connection params configurable.
         host = conf.get('zeit.recommend.zonapi.host', 'localhost')
         port = conf.get('zeit.recommend.zonapi.port', 8983)
         self.url = 'http://%s:%s/solr/select' % (host, port)
 
     def ack(self, msg_id):
-        # TODO: Properly implement amqp acking.
+        # TODO: Properly implement AMQP acking.
         log('[ZonAPISpout] Acknowledging message id-%s.' % msg_id)
 
     def fail(self, msg_id):
