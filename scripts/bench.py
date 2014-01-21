@@ -15,6 +15,10 @@ DESCRIPTION
         Configure the size of the user base to influence the underlying SVD.
         Defaults to 2500.
 
+    -p float, --proximity float
+        Configure the minimum proximity of the neighbors to consider.
+        Defaults to 1.0.
+
     -h, --help
         Show this message.
 
@@ -52,13 +56,25 @@ import os
 import sys
 import time
 import traceback
+import datetime
 
 
-def main(base, rank, ratio, size, threshold):
-    # Supress floating-point error warnings.
+def header(caption):
+    return ' %s '.ljust(20, '-').rjust(30, '-') % caption
+
+
+def report(description, verbose):
+    if verbose:
+        print '[%s] %s' % (datetime.datetime.now().ctime(), description)
+
+
+def main(base, proximity, rank, ratio, size, threshold, verbose):
+    if verbose:
+        print header('Report')
+    report('Supress floating-point error warnings.', verbose)
     np.seterr(all='ignore')
 
-    # Configure mock recommendation bolt.
+    report('Configure mock recommendation bolt.', verbose)
     script_path = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(script_path + '/../storm/src/py/resources')
     from recommendation import RecommendationBolt
@@ -70,39 +86,40 @@ def main(base, rank, ratio, size, threshold):
         }
     rb.initialize(conf, None)
 
-    # Generate test user base with a minimum observation count of 'threshold'.
+    report('Generate test users with a minimum observation count.', verbose)
     goal = dict(
         rb.generate_seed(from_=base + 10000, size=size, threshold=threshold)
         )
 
-    # Omit observations from user base so they can be predicted.
+    report('Omit observations from user base according to ratio.', verbose)
     test = goal.copy()
     for user in test:
         limit = int(len(test[user]) * ratio)
         test[user] = list(test[user])[:-limit]
 
-    # Generate recommendations for incomplete test dict.
+    report('Generate recommendations for incomplete test dict.', verbose)
     prediction = dict()
     t0 = time.time()
     for user, events in test.items():
         vector = np.array(rb.expand({user: events}).next())
         prediction[user] = list()
-        for col, value in rb.recommend(vector, size=0):
-            prediction[user].append(rb.cols[col])
+        #rb.fold_in(vector)
+        for col, value in rb.recommend(vector, proximity=proximity):
+            prediction[user].append(col)
     execution_time = (time.time() - t0) / len(test)
 
-    # Expand goal and prediction dicts to matrices.
+    report('Expand goal and prediction dicts to matrices.', verbose)
     goal_matrix = np.array(list(rb.expand(goal)))
     prediction_matrix = np.array(list(rb.expand(prediction)))
 
-    # Calculate mean absolute error.
+    report('Calculate mean absolute error.', verbose)
     aggregate = 0.0
     for i in range(goal_matrix.shape[0]):
         for j in range(goal_matrix.shape[1]):
             aggregate += abs(prediction_matrix[i, j] - goal_matrix[i, j])
     mae = aggregate / np.multiply(*goal_matrix.shape)
 
-    # Calculate average recall, precisions and f1 metrics.
+    report('Calculate average recall, precisions and f1 metrics.', verbose)
     precision_aggregate = 0.0
     recall_aggregate = 0.0
     f1_aggregate = 0.0
@@ -111,20 +128,20 @@ def main(base, rank, ratio, size, threshold):
 
     for user, events in goal.items():
         hits = set(events).intersection(set(prediction[user]))
-        
+
         recall = float(len(hits)) / len_goal
         recall_aggregate += recall
 
         if len(prediction[user]):
             precision = float(len(hits)) / len(prediction[user])
         else:
-            precision = 0
+            precision = 0.0
         precision_aggregate += precision
 
         if (recall + precision):
-            f1 = (2 * recall * precision) / (recall + precision)
+            f1 = float(2 * recall * precision) / (recall + precision)
         else:
-            f1 = 0
+            f1 = 0.0
         f1_aggregate += f1
 
         top_n_aggregate += len(prediction[user])
@@ -134,21 +151,20 @@ def main(base, rank, ratio, size, threshold):
     f1 = f1_aggregate / len_goal
     top_n = top_n_aggregate / len_goal
 
-    header = lambda h: ' %s '.rjust(16, '-').ljust(24, '-') % h
-
     print header('Options')
     print 'Base:\t\t', len(rb.rows)
+    print 'Proximity:\t', options.proximity
     print 'Rank:\t\t', options.rank
     print 'Ratio:\t\t', options.ratio
     print 'Size:\t\t', len(goal)
     print 'Threshold:\t', options.threshold
     print header('Averages')
-    print 'Seconds:\t%.8f' % execution_time
-    print 'MAE:\t\t%.8f' % mae
-    print 'Recall:\t\t%.8f' % recall
-    print 'Precision:\t%.8f' % precision
-    print 'F1 Metric:\t%.8f' % f1
-    print 'Top N:\t\t%.8f' % top_n
+    print 'Seconds:\t%.16f' % execution_time
+    print 'MAE:\t\t%.16f' % mae
+    print 'Recall:\t\t%.16f' % recall
+    print 'Precision:\t%.16f' % precision
+    print 'F1 Metric:\t%.16f' % f1
+    print 'Top N:\t\t%.16f' % top_n
 
 if __name__ == '__main__':
     try:
@@ -163,6 +179,13 @@ if __name__ == '__main__':
             default=2500,
             help='size of original user base',
             type='int'
+            )
+        parser.add_option(
+            '-p',
+            '--proximity',
+            default=1.0,
+            help='proximity of neighborhood',
+            type='float'
             )
         parser.add_option(
             '-k',
@@ -192,13 +215,21 @@ if __name__ == '__main__':
             help='minimum observations per test user',
             type='int'
             )
+        parser.add_option(
+            '-v',
+            '--verbose',
+            action='store_true',
+            help='turn on verbose output'
+            )
         (options, args) = parser.parse_args()
         main(
             options.base,
+            options.proximity,
             options.rank,
             options.ratio,
             options.size,
-            options.threshold
+            options.threshold,
+            options.verbose
             )
     except SystemExit, e:
         raise e
