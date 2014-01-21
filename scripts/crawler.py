@@ -42,7 +42,6 @@ import urllib
 
 
 class CSVWriter(object):
-
     def __init__(self, name):
         self._csv_file = open(name + '.csv', 'a')
         self._writer = csv.writer(self._csv_file, delimiter=',')
@@ -53,7 +52,6 @@ class CSVWriter(object):
 
 
 class HBaseWriter(object):
-
     def __init__(self, name):
         from happybase import Connection
         from thrift.transport import TTransport
@@ -78,7 +76,7 @@ def api_fetch(endpoint, **kwargs):
 
 
 def write_ratings(authors):
-    global stats
+    stats = globals()['stats']
 
     if 'hbase' in options.writer:
         write = HBaseWriter('ratings')
@@ -191,6 +189,7 @@ if __name__ == '__main__':
             print time.asctime()
         main()
         if options.verbose:
+            stats = globals()['stats']
             print time.asctime()
             print 'Total time in minutes: ', (time.time() - start_time) / 60.0
             print reduce(lambda i, x: i + '%s: %s, ' % x, stats.items(), '')
