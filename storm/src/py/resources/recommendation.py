@@ -51,11 +51,6 @@ class RecommendationBolt(Bolt):
             if len(events) >= threshold:
                 yield hit['_id'], events
 
-    def neighborhood(self, vector):
-        U_k_S_k_sqrt = np.dot(self.U_k, scipy.linalg.sqrtm(self.S_k))
-    
-        query = np.dot(np.linalg.inv(self.S_k), np.dot(self.V_t_k, vector))
-
     def expand(self, source):
         value_range = range(len(self.cols))
         for row in source.keys():
@@ -74,20 +69,28 @@ class RecommendationBolt(Bolt):
         item = np.dot(np.linalg.inv(self.S_k), np.dot(self.V_t_k, vector))
         self.V_t_k = np.hstack((self.V_t_k, np.array([item]).T))
 
-    def recommend(self, vector, size=10):
+    def recommend(self, vector, proximity=1.0):
         # TODO: Isn't np.linalg.inv(self.S_k) cacheable?
+        vector = np.append(
+            vector,
+            (self.V_t_k.shape[1] - vector.shape[0]) * [0]
+            )
         query = np.dot(np.linalg.inv(self.S_k), np.dot(self.V_t_k, vector))
 
         distances = list()
         for row in range(0, self.V_t_k.shape[1]):
             dist = scipy.spatial.distance.cosine(query, self.V_t_k[:, row])
-            if dist >= 0:
-                try:
-                    distances.append((row, dist))
-                except:
-                    print 'continue'
+            if dist >= proximity:
+                distances.append((row, dist))
 
-        return sorted(distances, key=lambda tup: tup[1])#[-size:]
+        # TODO: This section needs to be optimized.
+        recommendations = list()
+        for neighbor, dist in sorted(distances, key=lambda tup: tup[1]):
+            for col in range(len(self.A[neighbor, :])):
+                if self.A[neighbor, col] > 0:
+                    recommendations.append((self.cols[col], neighbor))
+
+        return recommendations
 
     def process(self, tup):
         try:
