@@ -163,7 +163,7 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     print 'MAE:\t\t%.16f' % mae
     print 'Recall:\t\t%.16f' % recall
     print 'Precision:\t%.16f' % precision
-    print 'F1 Metric:\t%.16f' % f1
+    print 'F1 Score:\t%.16f' % f1
     print 'Top N:\t\t%.16f' % top_n
 
 if __name__ == '__main__':
