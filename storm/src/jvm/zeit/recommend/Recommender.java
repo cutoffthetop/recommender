@@ -23,6 +23,11 @@ public class Recommender {
         new PythonSpout("rabbitmq.py", "timestamp", "path", "user"),
         1);
 
+    builder.setSpout(
+        "zonapi",
+        new PythonSpout("zonapi.py", "path"),
+        1);
+
     builder.setBolt(
         "observation",
         new PythonBolt("observation.py", "user", "paths"),
@@ -37,6 +42,7 @@ public class Recommender {
     conf.setDebug(true);
     conf.setMaxTaskParallelism(1);
 
+    // TODO: Read config data from file.
     conf.put("zeit.recommend.elasticsearch.host", "localhost");
     conf.put("zeit.recommend.elasticsearch.port", 9200);
     conf.put("zeit.recommend.rabbitmq.exchange", "zr_spout");
