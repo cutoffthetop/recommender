@@ -45,12 +45,11 @@ VERSION
     0.1
 """
 
-__import__('sys').path.append('../storm/src/py/resources')
-from recommendation import RecommendationBolt
+import numpy as np
 import optparse
 import os
+import sys
 import traceback
-import numpy as np
 
 
 def main(base, rank, ratio, size, threshold):
@@ -58,6 +57,10 @@ def main(base, rank, ratio, size, threshold):
     np.seterr(all='ignore')
 
     # Configure mock recommendation bolt.
+    script_path = os.path.dirname(os.path.realpath(__file__))
+    sys.path.append(script_path + '/../storm/src/py/resources')
+    from recommendation import RecommendationBolt
+
     rb = RecommendationBolt()
     conf = {
         'zeit.recommend.svd.base': base,
