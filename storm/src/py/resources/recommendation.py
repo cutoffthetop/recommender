@@ -14,48 +14,58 @@ from elasticsearch import Elasticsearch
 from storm import Bolt, log, emit
 import numpy as np
 import scipy.spatial
+import scipy.linalg
 
 
 class RecommendationBolt(Bolt):
     def initialize(self, conf, context):
-        host = conf.get('zeit.recommend.elasticsearch.host', 'localhost')
-        port = conf.get('zeit.recommend.elasticsearch.port', 9200)
-        self.es = Elasticsearch(hosts=[{'host': host, 'port': port}])
+        self.host = conf.get('zeit.recommend.elasticsearch.host', 'localhost')
+        self.port = conf.get('zeit.recommend.elasticsearch.port', 9200)
+        base = conf.get('zeit.recommend.svd.base', 18)
+        k = conf.get('zeit.recommend.svd.rank', 3)
 
-        base = conf.get('zeit.recommend.svd.base', 1000)
-        self.source = dict(self._stream(base))
-        self.values = list(set([i for j in self.source.values() for i in j]))
+        seed = dict(self.generate_seed(size=base))
 
-        self.A = np.array(list(self._expand(self.source)))
+        self.cols = sorted(set([i for j in seed.values() for i in j]))
+        self.rows = sorted(seed.keys())
+        self.A = np.empty([len(self.rows), len(self.cols)])
+
+        # expand()
+        for r in range(self.A.shape[0]):
+            for c in range(self.A.shape[1]):
+                self.A[r, c] = float(self.cols[c] in seed[self.rows[r]])
+
         U, S, V_t = np.linalg.svd(self.A, full_matrices=False)
 
-        k = conf.get('zeit.recommend.svd.rank', 100)
         self.U_k = U[:, :k]
         self.S_k = np.diag(S)[:k, :k]
         self.V_t_k = V_t[:k, :]
 
-    def _expand(self, source):
-        default_column = [0] * len(self.values)
-        value_range = range(len(self.values))
+    def generate_seed(self, from_=1000, size=1000, threshold=1):
+        # TODO: Implement threshold via DSL script filter.
+        es = Elasticsearch(hosts=[{'host': self.host, 'port': self.port}])
+        for hit in es.search(from_=from_, size=size)['hits']['hits']:
+            if 'events' not in hit['_source']:
+                continue
+            events = set([i['path'] for i in hit['_source']['events']])
+            if len(events) > threshold:
+                yield hit['_id'], events
+
+    def neighborhood(self, vector):
+        U_k_S_k_sqrt = np.dot(self.U_k, scipy.linalg.sqrtm(self.S_k))
+    
+        query = np.dot(np.linalg.inv(self.S_k), np.dot(self.V_t_k, vector))
+
+    def expand(self, source):
+        value_range = range(len(self.cols))
         for row in source.keys():
-            column = list(default_column)
+            column = np.zeros(len(self.cols))
             for i in value_range:
-                if self.values[i] in source[row]:
+                if self.cols[i] in source[row]:
                     column[i] = 1
             yield column
 
-    def _stream(self, size, from_=10000, threshold=1):
-        # TODO: Replace 'from_' param with a more sensible time range.
-        # TODO: Is threshold=1 justified?
-        pool = self.es.search(from_=from_, size=size)['hits']['hits']
-        for p in range(len(pool)):
-            if 'events' not in pool[p]['_source']:
-                continue
-            events = set([i['path'] for i in pool[p]['_source']['events']])
-            if len(events) > threshold:
-                yield pool[p]['_id'], list(events)
-
-    def _fold_in(self, vector):
+    def fold_in(self, vector):
         # TODO: Fold into which axis?
         vector = np.append(
             vector,
@@ -64,12 +74,8 @@ class RecommendationBolt(Bolt):
         item = np.dot(np.linalg.inv(self.S_k), np.dot(self.V_t_k, vector))
         self.V_t_k = np.hstack((self.V_t_k, np.array([item]).T))
 
-    def _recommend(self, vector, size=10):
-        vector = np.append(
-            vector,
-            (self.V_t_k.shape[1] - vector.shape[0]) * [0]
-            )
-
+    def recommend(self, vector, size=10):
+        # TODO: Isn't np.linalg.inv(self.S_k) cacheable?
         query = np.dot(np.linalg.inv(self.S_k), np.dot(self.V_t_k, vector))
 
         distances = list()
@@ -91,11 +97,12 @@ class RecommendationBolt(Bolt):
             log('[RecommendationBolt] TypeError, process failed: %s' % e)
             return
 
-        vector = np.array(self._expand({user: events}).next())
-        self._fold_in(vector)
-        recommendations = self._recommend(vector)
+        vector = np.array(self.expand({user: events}).next())
+        self.fold_in(vector)
+        recommendations = self.recommend(vector)
         # Emitting   (user, events,   recommendations  )
         # Encoded as (user, (event*), (recommendation*))
         emit([user, events, recommendations])
 
-RecommendationBolt().run()
+if __name__ == '__main__':
+    RecommendationBolt().run()
