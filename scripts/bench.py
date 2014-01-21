@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 """
 SYNOPSIS
@@ -49,6 +50,7 @@ import numpy as np
 import optparse
 import os
 import sys
+import time
 import traceback
 
 
@@ -81,10 +83,12 @@ def main(base, rank, ratio, size, threshold):
 
     # Generate recommendations for incomplete test dict.
     prediction = test.copy()
+    t0 = time.time()
     for user, events in prediction.items():
         vector = rb.expand({user: events}).next()
-        for col, value in rb.recommend(np.array(vector)):
+        for col, value in rb.recommend(np.array(vector), size=0):
             prediction[user].append(rb.cols[col])
+    execution_time = time.time() - t0
 
     # Expand goal and prediction dicts to matrices.
     goal_matrix = np.array(list(rb.expand(goal)))
@@ -95,13 +99,40 @@ def main(base, rank, ratio, size, threshold):
     for i in range(goal_matrix.shape[0]):
         for j in range(goal_matrix.shape[1]):
             aggregate += abs(prediction_matrix[i, j] - goal_matrix[i, j])
+    mae = aggregate / np.multiply(*goal_matrix.shape)
 
-    print 'Base:\t\t', options.base
+    # Calculate average recall of recommendations.
+    aggregate = 0.0
+    for user, events in goal.items():
+        hits = set(events).intersection(set(prediction[user]))
+        aggregate += float(len(hits)) / len(goal)
+    recall = aggregate / len(goal)
+
+    # Calculate average precision of recommendations.
+    aggregate, length = 0.0, len(goal)
+    for user, events in goal.items():
+        hits = set(events).intersection(set(prediction[user]))
+        try:
+            aggregate += float(len(hits)) / len(prediction[user])
+        except ZeroDivisionError:
+            continue
+    precision = aggregate / length
+
+    # Calculate F1 metric of average recall and precision.
+    f1_metric = (2 * recall * precision) / (recall + precision)
+
+    print '—' * 40
+    print 'Base:\t\t', len(rb.rows)
     print 'Rank:\t\t', options.rank
     print 'Ratio:\t\t', options.ratio
-    print 'Size:\t\t', options.size
+    print 'Size:\t\t', len(goal)
     print 'Threshold:\t', options.threshold
-    print 'MAE:\t\t', aggregate / np.multiply(*goal_matrix.shape)
+    print '—' * 40
+    print 'Seconds:\t%.3f' % execution_time
+    print 'MAE:\t\t%.6f' % mae
+    print 'Recall:\t\t%.6f' % recall
+    print 'Precision:\t%.6f' % precision
+    print 'F1 Metric:\t%.6f' % f1_metric
 
 if __name__ == '__main__':
     try:
