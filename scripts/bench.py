@@ -72,7 +72,7 @@ def main(base, rank, ratio, size, threshold):
 
     # Generate test user base with a minimum observation count of 'threshold'.
     goal = dict(
-        rb.generate_seed(from_=base + 1000, size=size, threshold=threshold)
+        rb.generate_seed(from_=base + 10000, size=size, threshold=threshold)
         )
 
     # Omit observations from user base so they can be predicted.
@@ -82,13 +82,14 @@ def main(base, rank, ratio, size, threshold):
         test[user] = list(test[user])[:-limit]
 
     # Generate recommendations for incomplete test dict.
-    prediction = test.copy()
+    prediction = dict()
     t0 = time.time()
-    for user, events in prediction.items():
-        vector = rb.expand({user: events}).next()
-        for col, value in rb.recommend(np.array(vector), size=0):
+    for user, events in test.items():
+        vector = np.array(rb.expand({user: events}).next())
+        prediction[user] = list()
+        for col, value in rb.recommend(vector, size=0):
             prediction[user].append(rb.cols[col])
-    execution_time = time.time() - t0
+    execution_time = (time.time() - t0) / len(test)
 
     # Expand goal and prediction dicts to matrices.
     goal_matrix = np.array(list(rb.expand(goal)))
@@ -101,38 +102,53 @@ def main(base, rank, ratio, size, threshold):
             aggregate += abs(prediction_matrix[i, j] - goal_matrix[i, j])
     mae = aggregate / np.multiply(*goal_matrix.shape)
 
-    # Calculate average recall of recommendations.
-    aggregate = 0.0
+    # Calculate average recall, precisions and f1 metrics.
+    precision_aggregate = 0.0
+    recall_aggregate = 0.0
+    f1_aggregate = 0.0
+    top_n_aggregate = 0.0
+    len_goal = len(goal)
+
     for user, events in goal.items():
         hits = set(events).intersection(set(prediction[user]))
-        aggregate += float(len(hits)) / len(goal)
-    recall = aggregate / len(goal)
+        
+        recall = float(len(hits)) / len_goal
+        recall_aggregate += recall
 
-    # Calculate average precision of recommendations.
-    aggregate, length = 0.0, len(goal)
-    for user, events in goal.items():
-        hits = set(events).intersection(set(prediction[user]))
-        try:
-            aggregate += float(len(hits)) / len(prediction[user])
-        except ZeroDivisionError:
-            continue
-    precision = aggregate / length
+        if len(prediction[user]):
+            precision = float(len(hits)) / len(prediction[user])
+        else:
+            precision = 0
+        precision_aggregate += precision
 
-    # Calculate F1 metric of average recall and precision.
-    f1_metric = (2 * recall * precision) / (recall + precision)
+        if (recall + precision):
+            f1 = (2 * recall * precision) / (recall + precision)
+        else:
+            f1 = 0
+        f1_aggregate += f1
 
-    print '—' * 40
+        top_n_aggregate += len(prediction[user])
+
+    recall = recall_aggregate / len_goal
+    precision = precision_aggregate / len_goal
+    f1 = f1_aggregate / len_goal
+    top_n = top_n_aggregate / len_goal
+
+    header = lambda h: ' %s '.rjust(16, '-').ljust(24, '-') % h
+
+    print header('Options')
     print 'Base:\t\t', len(rb.rows)
     print 'Rank:\t\t', options.rank
     print 'Ratio:\t\t', options.ratio
     print 'Size:\t\t', len(goal)
     print 'Threshold:\t', options.threshold
-    print '—' * 40
-    print 'Seconds:\t%.3f' % execution_time
-    print 'MAE:\t\t%.6f' % mae
-    print 'Recall:\t\t%.6f' % recall
-    print 'Precision:\t%.6f' % precision
-    print 'F1 Metric:\t%.6f' % f1_metric
+    print header('Averages')
+    print 'Seconds:\t%.8f' % execution_time
+    print 'MAE:\t\t%.8f' % mae
+    print 'Recall:\t\t%.8f' % recall
+    print 'Precision:\t%.8f' % precision
+    print 'F1 Metric:\t%.8f' % f1
+    print 'Top N:\t\t%.8f' % top_n
 
 if __name__ == '__main__':
     try:
