@@ -85,7 +85,7 @@ class RecommendationBolt(Bolt):
                 try:
                     distances.append((self.values[row], dist))
                 except:
-                    distances.append((row, dist))
+                    pass
 
         return sorted(distances, key=lambda tup: tup[1])[-size:]
 
