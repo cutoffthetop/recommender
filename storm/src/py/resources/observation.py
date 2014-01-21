@@ -78,4 +78,5 @@ class ObservationBolt(Bolt):
             # TODO: What is going wrong here?
             log('[ObservationBolt] TransportError, index failed: %s' % e)
 
-ObservationBolt().run()
+if __name__ == '__main__':
+    ObservationBolt().run()

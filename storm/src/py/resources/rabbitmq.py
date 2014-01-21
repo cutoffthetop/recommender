@@ -52,4 +52,5 @@ class RabbitMQSpout(Spout):
             ts = mktime(strptime(parsed['timestamp'], '%Y-%m-%d %H:%M:%S %Z'))
             emit([int(ts * 1000), parsed['path'], user], id=str(uuid4()))
 
-RabbitMQSpout().run()
+if __name__ == '__main__':
+    RabbitMQSpout().run()
