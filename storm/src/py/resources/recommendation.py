@@ -48,7 +48,7 @@ class RecommendationBolt(Bolt):
             if 'events' not in hit['_source']:
                 continue
             events = set([i['path'] for i in hit['_source']['events']])
-            if len(events) > threshold:
+            if len(events) >= threshold:
                 yield hit['_id'], events
 
     def neighborhood(self, vector):
@@ -83,11 +83,11 @@ class RecommendationBolt(Bolt):
             dist = scipy.spatial.distance.cosine(query, self.V_t_k[:, row])
             if dist >= 0:
                 try:
-                    distances.append((self.values[row], dist))
+                    distances.append((row, dist))
                 except:
-                    pass
+                    print 'continue'
 
-        return sorted(distances, key=lambda tup: tup[1])[-size:]
+        return sorted(distances, key=lambda tup: tup[1])#[-size:]
 
     def process(self, tup):
         try:
