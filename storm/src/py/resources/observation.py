@@ -47,6 +47,7 @@ class ObservationBolt(Bolt):
                 doc_type='user',
                 body=doc_type
                 )
+            # TODO: Create new index if not exists: ic.create('observations')
 
     def process(self, tup):
         path = tup.values[1].rstrip('/')
