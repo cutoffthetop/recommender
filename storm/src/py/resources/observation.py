@@ -22,6 +22,7 @@ class ObservationBolt(Bolt):
         host = conf.get('zeit.recommend.elasticsearch.host', 'localhost')
         port = conf.get('zeit.recommend.elasticsearch.port', 9200)
         self.es = Elasticsearch(hosts=[{'host': host, 'port': port}])
+        self.match = re.compile('seite-[0-9]|komplettansicht').match
         ic = IndicesClient(self.es)
 
         try:
@@ -47,9 +48,13 @@ class ObservationBolt(Bolt):
                 )
 
     def process(self, tup):
+        path = tup.values[1].rstrip('/')
+        if self.match(path):
+            path = path.rsplit('/', 1)[0]
+
         event = dict(
             timestamp=tup.values[0],
-            path=tup.values[1]
+            path=path
             )
 
         kwargs = dict(
@@ -68,7 +73,7 @@ class ObservationBolt(Bolt):
             return
 
         events = list(set(i['path'] for i in body['events']))
-        # Emitting   (user, paths  )
+        # Emitting   (user, events  )
         # Encoded as (user, (path*))
         emit([kwargs['id'], events])
 
