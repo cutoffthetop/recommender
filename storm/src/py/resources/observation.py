@@ -15,6 +15,7 @@ from elasticsearch.client import IndicesClient
 from elasticsearch.exceptions import NotFoundError
 from elasticsearch.exceptions import TransportError
 from storm import Bolt, log, emit
+import re
 
 
 class ObservationBolt(Bolt):
@@ -72,7 +73,7 @@ class ObservationBolt(Bolt):
             log('[ObservationBolt] TransportError, get failed: %s' % e)
             return
 
-        events = list(set(i['path'] for i in body['events']))
+        events = list(i['path'] for i in body['events'])
         # Emitting   (user, events  )
         # Encoded as (user, (path*))
         emit([kwargs['id'], events])
