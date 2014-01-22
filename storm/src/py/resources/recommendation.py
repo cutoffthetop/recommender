@@ -39,6 +39,7 @@ class RecommendationBolt(Bolt):
 
         self.U_k = U[:, :k]
         self.S_k = np.diag(S)[:k, :k]
+        self.S_k_inv = np.linalg.inv(self.S_k)
         self.V_t_k = V_t[:k, :]
 
     def generate_seed(self, from_=1000, size=1000, threshold=1):
@@ -66,16 +67,15 @@ class RecommendationBolt(Bolt):
             vector,
             (self.V_t_k.shape[1] - vector.shape[0]) * [0]
             )
-        item = np.dot(np.linalg.inv(self.S_k), np.dot(self.V_t_k, vector))
+        item = np.dot(self.S_k_inv, np.dot(self.V_t_k, vector))
         self.V_t_k = np.hstack((self.V_t_k, np.array([item]).T))
 
     def recommend(self, vector, proximity=1.0):
-        # TODO: Isn't np.linalg.inv(self.S_k) cacheable?
         vector = np.append(
             vector,
             (self.V_t_k.shape[1] - vector.shape[0]) * [0]
             )
-        query = np.dot(np.linalg.inv(self.S_k), np.dot(self.V_t_k, vector))
+        query = np.dot(self.S_k_inv, np.dot(self.V_t_k, vector))
 
         distances = list()
         for row in range(0, self.V_t_k.shape[1]):
