@@ -106,7 +106,7 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
         #rb.fold_in(vector)
         for col, value in rb.recommend(vector, proximity=proximity):
             prediction[user].append(col)
-    execution_time = (time.time() - t0) / len(test)
+    seconds = (time.time() - t0) / len(test)
 
     report('Expand goal and prediction dicts to matrices.', verbose)
     goal_matrix = np.array(list(rb.expand(goal)))
@@ -152,14 +152,14 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     top_n = top_n_aggregate / len_goal
 
     print header('Options')
-    print 'Base:\t\t', len(rb.rows)
-    print 'Proximity:\t', options.proximity
-    print 'Rank:\t\t', options.rank
-    print 'Ratio:\t\t', options.ratio
-    print 'Size:\t\t', len(goal)
-    print 'Threshold:\t', options.threshold
+    print 'Base:\t\t', base
+    print 'Proximity:\t', proximity
+    print 'Rank:\t\t', rank
+    print 'Ratio:\t\t', ratio
+    print 'Size:\t\t', len_goal
+    print 'Threshold:\t', threshold
     print header('Averages')
-    print 'Seconds:\t%.16f' % execution_time
+    print 'Seconds:\t%.16f' % seconds
     print 'MAE:\t\t%.16f' % mae
     print 'Recall:\t\t%.16f' % recall
     print 'Precision:\t%.16f' % precision
