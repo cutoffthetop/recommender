@@ -82,7 +82,8 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     rb = RecommendationBolt()
     conf = {
         'zeit.recommend.svd.base': base,
-        'zeit.recommend.svd.rank': rank
+        'zeit.recommend.svd.rank': rank,
+        'zeit.recommend.elasticsearch.host': '217.13.68.236'
         }
     rb.initialize(conf, None)
 
