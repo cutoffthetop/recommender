@@ -15,6 +15,7 @@ from elasticsearch.client import IndicesClient
 from elasticsearch.exceptions import NotFoundError
 from elasticsearch.exceptions import TransportError
 from storm import Bolt, log, emit
+import math
 import re
 
 
@@ -36,11 +37,11 @@ class ObservationBolt(Bolt):
                 'user': {
                     'properties': {
                         'events': {'type': 'nested'},
-                        'length' : {'type' : 'integer', 'store': 'yes'}
+                        'rank' : {'type' : 'float', 'store': 'yes'}
                         },
                     '_boost' : {
-                        'name' : 'my_boost',
-                        'null_value' : 1.0
+                        'name' : 'rank',
+                        'null_value' : 0.1
                         }
                     }
                 }
@@ -83,7 +84,7 @@ class ObservationBolt(Bolt):
         emit([kwargs['id'], events])
 
         try:
-            body['length'] = len(events)
+            body['rank'] = math.log10(len(events)) / 2
             self.es.index('observations', 'user', body, **kwargs)
         except TransportError, e:
             # TODO: What is going wrong here?
