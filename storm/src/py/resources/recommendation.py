@@ -30,7 +30,6 @@ class RecommendationBolt(Bolt):
         self.rows = sorted(seed.keys())
         self.A = np.empty([len(self.rows), len(self.cols)])
 
-        # expand()
         for r in range(self.A.shape[0]):
             for c in range(self.A.shape[1]):
                 self.A[r, c] = float(self.cols[c] in seed[self.rows[r]])
@@ -38,8 +37,7 @@ class RecommendationBolt(Bolt):
         U, S, V_t = np.linalg.svd(self.A, full_matrices=False)
 
         self.U_k = U[:, :k]
-        self.S_k = np.diag(S)[:k, :k]
-        self.S_k_inv = np.linalg.inv(self.S_k)
+        self.S_k_inv = np.linalg.inv(np.diag(S)[:k, :k])
         self.V_t_k = V_t[:k, :]
 
     def generate_seed(self, from_=0, size=1000, threshold=0.0):
@@ -72,7 +70,7 @@ class RecommendationBolt(Bolt):
                     column[i] = 1
             yield column
 
-    def fold_in(self, vector):
+    def fold_in(self, vector, axis=None):
         # TODO: Fold into which axis?
         vector = np.append(
             vector,
@@ -82,26 +80,13 @@ class RecommendationBolt(Bolt):
         self.V_t_k = np.hstack((self.V_t_k, np.array([item]).T))
 
     def recommend(self, vector, proximity=1.0):
-        vector = np.append(
-            vector,
-            (self.V_t_k.shape[1] - vector.shape[0]) * [0]
-            )
         query = np.dot(self.S_k_inv, np.dot(self.V_t_k, vector))
-
-        distances = list()
         for row in range(0, self.V_t_k.shape[1]):
-            dist = scipy.spatial.distance.cosine(query, self.V_t_k[:, row])
-            if dist >= proximity:
-                distances.append((row, dist))
-
-        # TODO: This section needs to be optimized.
-        recommendations = list()
-        for neighbor, dist in sorted(distances, key=lambda tup: tup[1]):
-            for col in range(len(self.A[neighbor, :])):
-                if self.A[neighbor, col] > 0:
-                    recommendations.append((self.cols[col], neighbor))
-
-        return recommendations
+            distance = scipy.spatial.distance.cosine(query, self.V_t_k[:, row])
+            if distance >= proximity:
+                for col in range(len(self.A[row, :])):
+                    if self.A[row, col] > 0:
+                        yield self.cols[col]
 
     def process(self, tup):
         try:
@@ -113,7 +98,7 @@ class RecommendationBolt(Bolt):
 
         vector = np.array(self.expand({user: events}).next())
         self.fold_in(vector)
-        recommendations = self.recommend(vector)
+        recommendations = list(self.recommend(vector))
         # Emitting   (user, events,   recommendations  )
         # Encoded as (user, (event*), (recommendation*))
         emit([user, events, recommendations])

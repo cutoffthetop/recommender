@@ -103,10 +103,8 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     t0 = time.time()
     for user, events in test.items():
         vector = np.array(rb.expand({user: events}).next())
-        prediction[user] = list()
         #rb.fold_in(vector)
-        for col, value in rb.recommend(vector, proximity=proximity):
-            prediction[user].append(col)
+        prediction[user] = list(rb.recommend(vector, proximity=proximity))
     seconds = (time.time() - t0) / len(test)
 
     report('Expand goal and prediction dicts to matrices.', verbose)

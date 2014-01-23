@@ -30,16 +30,16 @@ class ObservationBolt(Bolt):
         if not ic.exists('observations'):
             ic.create('observations')
 
-        if not ic.exists_type(index='observations',doc_type='user'):
+        if not ic.exists_type(index='observations', doc_type='user'):
             body = {
                 'user': {
                     'properties': {
                         'events': {'type': 'nested'},
-                        'rank' : {'type' : 'float', 'store': 'yes'}
+                        'rank': {'type': 'float', 'store': 'yes'}
                         },
-                    '_boost' : {
-                        'name' : 'rank',
-                        'null_value' : 0.1
+                    '_boost': {
+                        'name': 'rank',
+                        'null_value': 0.1
                         }
                     }
                 }

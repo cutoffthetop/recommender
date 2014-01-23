@@ -23,7 +23,7 @@ class ZonAPISpout(Spout):
         host = conf.get('zeit.recommend.zonapi.host', 'localhost')
         port = conf.get('zeit.recommend.zonapi.port', 8983)
         self.url = 'http://%s:%s/solr/select' % (host, port)
-        self.time_range = [datetime.now(),] * 2
+        self.time_range = [datetime.now(), ] * 2
 
     def ack(self, cnt_id):
         log('[ZonAPISpout] Acknowledging content id-%s.' % cnt_id)
@@ -31,7 +31,7 @@ class ZonAPISpout(Spout):
     def fail(self, cnt_id):
         log('[ZonAPISpout] Content id-%s is failing.' % cnt_id)
 
-    def _get_docs(self, from_, to, sort):
+    def get_docs(self, from_, to, sort):
         # TODO: This is not parallelizable.
         date_range = (from_.isoformat()[:-3], to.isoformat()[:-3])
         params = dict(
@@ -46,11 +46,11 @@ class ZonAPISpout(Spout):
         return json.loads(data)['response']['docs']
 
     def nextTuple(self):
-        docs = self._get_docs(self.time_range[1], datetime.now(), 'asc')
+        docs = self.get_docs(self.time_range[1], datetime.now(), 'asc')
         if docs:
             self.time_range[1] = datetime.now()
         else:
-            docs = self._get_docs(datetime(2000,1,1), self.time_range[0],
+            docs = self.get_docs(datetime(2000, 1, 1), self.time_range[0],
                                   'desc')
             if docs:
                 self.time_range[0] = datetime.strptime(docs[0]['release_date'],
