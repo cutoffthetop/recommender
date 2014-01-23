@@ -214,7 +214,7 @@ if __name__ == '__main__':
             '--threshold',
             default=0.0,
             help='minimum test user ranking',
-            type='int'
+            type='float'
             )
         parser.add_option(
             '-v',
