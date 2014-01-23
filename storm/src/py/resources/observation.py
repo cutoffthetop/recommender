@@ -27,12 +27,10 @@ class ObservationBolt(Bolt):
         self.match = re.compile('seite-[0-9]|komplettansicht').match
         ic = IndicesClient(self.es)
 
-        try:
-            ic.get_mapping(
-                index='observations',
-                doc_type='user'
-                )
-        except NotFoundError:
+        if not ic.exists('observations'):
+            ic.create('observations')
+
+        if not ic.exists_type(index='observations',doc_type='user'):
             body = {
                 'user': {
                     'properties': {
@@ -51,7 +49,6 @@ class ObservationBolt(Bolt):
                 doc_type='user',
                 body=body
                 )
-            # TODO: Create new index if not exists: ic.create('observations')
 
     def process(self, tup):
         path = tup.values[1].rstrip('/')
