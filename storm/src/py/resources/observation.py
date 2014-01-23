@@ -35,13 +35,12 @@ class ObservationBolt(Bolt):
             doc_type = {
                 'user': {
                     'properties': {
-                        'events': {
-                            'type': 'nested'
-                            },
-                        'length' : {
-                            'type' : 'integer',
-                            'store': 'yes'
-                            }
+                        'events': {'type': 'nested'},
+                        'length' : {'type' : 'integer', 'store': 'yes'}
+                        },
+                    '_boost' : {
+                        'name' : 'my_boost',
+                        'null_value' : 1.0
                         }
                     }
                 }
