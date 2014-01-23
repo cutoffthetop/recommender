@@ -42,15 +42,26 @@ class RecommendationBolt(Bolt):
         self.S_k_inv = np.linalg.inv(self.S_k)
         self.V_t_k = V_t[:k, :]
 
-    def generate_seed(self, from_=1000, size=1000, threshold=1):
-        # TODO: Implement threshold via DSL script filter.
+    def generate_seed(self, from_=0, size=1000, threshold=0.0):
+        body = {
+            'query': {
+                'filtered': {
+                    'query': {
+                        'match_all': {}
+                    },
+                    'filter': {
+                        'range': {
+                            'user.rank': {
+                                'from': threshold
+                            }
+                        }
+                    }
+                }
+            }
+        }
         es = Elasticsearch(hosts=[{'host': self.host, 'port': self.port}])
-        for hit in es.search(from_=from_, size=size)['hits']['hits']:
-            if 'events' not in hit['_source']:
-                continue
-            events = set([i['path'] for i in hit['_source']['events']])
-            if len(events) >= threshold:
-                yield hit['_id'], events
+        for h in es.search(body=body, from_=from_, size=size)['hits']['hits']:
+            yield h['_id'], set([e['path'] for e in h['_source']['events']])
 
     def expand(self, source):
         value_range = range(len(self.cols))

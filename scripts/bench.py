@@ -33,9 +33,9 @@ DESCRIPTION
         Configure how many users to generate recommendations for. The actual
         size may vary depending on threshold setting. Defaults to 5000.
 
-    -t int, --threshold int
+    -t float, --threshold float
         Set the minimum ammount of observations must be on record for a user
-        to be considered for testing. Defaults to 5.
+        to be considered for testing. Defaults to 0.0.
 
 AUTHOR
 
@@ -89,7 +89,7 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
 
     report('Generate test users with a minimum observation count.', verbose)
     goal = dict(
-        rb.generate_seed(from_=base + 10000, size=size, threshold=threshold)
+        rb.generate_seed(from_=base, size=size, threshold=threshold)
         )
 
     report('Omit observations from user base according to ratio.', verbose)
@@ -212,8 +212,8 @@ if __name__ == '__main__':
         parser.add_option(
             '-t',
             '--threshold',
-            default=5,
-            help='minimum observations per test user',
+            default=0.0,
+            help='minimum test user ranking',
             type='int'
             )
         parser.add_option(

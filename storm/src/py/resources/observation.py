@@ -33,7 +33,7 @@ class ObservationBolt(Bolt):
                 doc_type='user'
                 )
         except NotFoundError:
-            doc_type = {
+            body = {
                 'user': {
                     'properties': {
                         'events': {'type': 'nested'},
@@ -49,7 +49,7 @@ class ObservationBolt(Bolt):
                 index='observations',
                 ignore_conflicts=True,
                 doc_type='user',
-                body=doc_type
+                body=body
                 )
             # TODO: Create new index if not exists: ic.create('observations')
 
