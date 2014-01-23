@@ -37,6 +37,10 @@ class ObservationBolt(Bolt):
                     'properties': {
                         'events': {
                             'type': 'nested'
+                            },
+                        'length' : {
+                            'type' : 'integer',
+                            'store': 'yes'
                             }
                         }
                     }
@@ -80,6 +84,7 @@ class ObservationBolt(Bolt):
         emit([kwargs['id'], events])
 
         try:
+            body['length'] = len(events)
             self.es.index('observations', 'user', body, **kwargs)
         except TransportError, e:
             # TODO: What is going wrong here?
