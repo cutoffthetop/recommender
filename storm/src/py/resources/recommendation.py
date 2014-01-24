@@ -85,7 +85,7 @@ class RecommendationBolt(Bolt):
             distance = scipy.spatial.distance.cosine(query, self.V_t_k[:, row])
             if distance >= proximity:
                 for col in range(len(self.A[row, :])):
-                    if self.A[row, col] > 0:
+                    if self.A[row, col] > vector[col]:
                         yield self.cols[col]
 
     def process(self, tup):
