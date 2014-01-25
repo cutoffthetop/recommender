@@ -79,6 +79,7 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     sys.path.append(script_path + '/../storm/src/py/resources')
     from recommendation import RecommendationBolt
 
+    t0 = time.time()
     rb = RecommendationBolt()
     conf = {
         'zeit.recommend.svd.base': base,
@@ -86,6 +87,7 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
         'zeit.recommend.elasticsearch.host': '217.13.68.236'
         }
     rb.initialize(conf, None)
+    initializing = (time.time() - t0) / base
 
     report('Generate test users with a minimum observation count.', verbose)
     goal = dict(
@@ -103,9 +105,9 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     t0 = time.time()
     for user, events in test.items():
         vector = np.array(rb.expand({user: events}).next())
-        #rb.fold_in(vector)
+        rb.fold_in_user(vector)
         prediction[user] = list(rb.recommend(vector, proximity=proximity))
-    seconds = (time.time() - t0) / len(test)
+    recommending = (time.time() - t0) / len(test)
 
     report('Expand goal and prediction dicts to matrices.', verbose)
     goal_matrix = np.array(list(rb.expand(goal)))
@@ -158,7 +160,8 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     print 'Size:\t\t', len_goal
     print 'Threshold:\t', threshold
     print header('Averages')
-    print 'Seconds:\t%.16f' % seconds
+    print 'Recommending:\t%.8fs' % recommending
+    print 'Initializing:\t%.8fs' % initializing
     print 'MAE:\t\t%.16f' % mae
     print 'Recall:\t\t%.16f' % recall
     print 'Precision:\t%.16f' % precision
