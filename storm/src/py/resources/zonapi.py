@@ -51,7 +51,7 @@ class ZonAPISpout(Spout):
             self.time_range[1] = datetime.now()
         else:
             docs = self.get_docs(datetime(2000, 1, 1), self.time_range[0],
-                                  'desc')
+                                 'desc')
             if docs:
                 self.time_range[0] = datetime.strptime(docs[0]['release_date'],
                                                        '%Y-%m-%dT%H:%M:%SZ')

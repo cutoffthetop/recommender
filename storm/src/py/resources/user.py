@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 """
-    zeit.recommend.observation
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    zeit.recommend.user
+    ~~~~~~~~~~~~~~~~~~~
 
     This module has no description.
 
@@ -15,22 +15,24 @@ from elasticsearch.client import IndicesClient
 from elasticsearch.exceptions import NotFoundError
 from elasticsearch.exceptions import TransportError
 from storm import Bolt, log, emit
+from datetime import date
 import math
 import re
 
 
-class ObservationBolt(Bolt):
+class UserIndexBolt(Bolt):
     def initialize(self, conf, context):
         host = conf.get('zeit.recommend.elasticsearch.host', 'localhost')
         port = conf.get('zeit.recommend.elasticsearch.port', 9200)
         self.es = Elasticsearch(hosts=[{'host': host, 'port': port}])
         self.match = re.compile('seite-[0-9]|komplettansicht').match
+        self.index = '%s-%s' % date.today().isocalendar()[:2]
         ic = IndicesClient(self.es)
 
-        if not ic.exists('observations'):
-            ic.create('observations')
+        if not ic.exists(self.index):
+            ic.create(self.index)
 
-        if not ic.exists_type(index='observations', doc_type='user'):
+        if not ic.exists_type(index=self.index, doc_type='user'):
             body = {
                 'user': {
                     'properties': {
@@ -44,7 +46,7 @@ class ObservationBolt(Bolt):
                     }
                 }
             ic.put_mapping(
-                index='observations',
+                index=self.index,
                 ignore_conflicts=True,
                 doc_type='user',
                 body=body
@@ -65,7 +67,7 @@ class ObservationBolt(Bolt):
             )
 
         try:
-            events = self.es.get('observations', kwargs['id'], 'user')
+            events = self.es.get('_all', kwargs['id'], 'user')
             body = {'events': events['_source']['events'] + [event]}
         except NotFoundError:
             kwargs['op_type'] = 'create'
@@ -82,10 +84,10 @@ class ObservationBolt(Bolt):
 
         try:
             body['rank'] = math.log10(len(events)) / 2
-            self.es.index('observations', 'user', body, **kwargs)
+            self.es.index(self.index, 'user', body, **kwargs)
         except TransportError, e:
             # TODO: What is going wrong here?
             log('[ObservationBolt] TransportError, index failed: %s' % e)
 
 if __name__ == '__main__':
-    ObservationBolt().run()
+    UserIndexBolt().run()

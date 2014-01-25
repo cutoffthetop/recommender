@@ -58,7 +58,8 @@ class RecommendationBolt(Bolt):
             }
         }
         es = Elasticsearch(hosts=[{'host': self.host, 'port': self.port}])
-        for h in es.search(body=body, from_=from_, size=size)['hits']['hits']:
+        results = es.search(body=body, from_=from_, size=size, doc_type='user')
+        for h in results['hits']['hits']:
             yield h['_id'], set([e['path'] for e in h['_source']['events']])
 
     def expand(self, source):
@@ -70,8 +71,7 @@ class RecommendationBolt(Bolt):
                     column[i] = 1
             yield column
 
-    def fold_in(self, vector, axis=None):
-        # TODO: Fold into which axis?
+    def fold_in_item(self, vector):
         vector = np.append(
             vector,
             (self.V_t_k.shape[1] - vector.shape[0]) * [0]
@@ -79,7 +79,19 @@ class RecommendationBolt(Bolt):
         item = np.dot(self.S_k_inv, np.dot(self.V_t_k, vector))
         self.V_t_k = np.hstack((self.V_t_k, np.array([item]).T))
 
+    def fold_in_user(self, vector):
+        vector = np.append(
+            vector,
+            (self.V_t_k.shape[1] - vector.shape[0]) * [0]
+            )
+        user = np.dot(self.S_k_inv, np.dot(self.V_t_k, vector))
+        self.V_t_k = np.hstack((self.V_t_k, np.array([user]).T))
+
     def recommend(self, vector, proximity=1.0):
+        vector = np.append(
+            vector,
+            (self.V_t_k.shape[1] - vector.shape[0]) * [0]
+            )
         query = np.dot(self.S_k_inv, np.dot(self.V_t_k, vector))
         for row in range(0, self.V_t_k.shape[1]):
             distance = scipy.spatial.distance.cosine(query, self.V_t_k[:, row])
@@ -97,7 +109,7 @@ class RecommendationBolt(Bolt):
             return
 
         vector = np.array(self.expand({user: events}).next())
-        self.fold_in(vector)
+        self.fold_in_user(vector)
         recommendations = list(self.recommend(vector))
         # Emitting   (user, events,   recommendations  )
         # Encoded as (user, (event*), (recommendation*))
