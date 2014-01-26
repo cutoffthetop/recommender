@@ -1,0 +1,48 @@
+<html>
+
+<head>
+  <meta content="utf-8" http-equiv="encoding">
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.4.0/moment.min.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/holder/2.2.0/holder.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+  <title>Zeit Recommend</title>
+  <style type="text/css">
+    .row:not(:last-child) {
+      border-bottom: 1px solid #eee;
+    }
+    .row {
+      padding: 10px;
+    }
+
+  </style>
+</head>
+
+<body>
+  <div id="main" class="container">
+    <h1>Zeit Recommend</h1>
+  </div>
+</body>
+
+<script type="text/javascript">
+  var compiled = _.template(
+  "<div class=\"row\">\
+    <div class=\"col-md-4\"><%= requested %></div>\
+    <div class=\"col-md-8\"><%= recommended %></div>\
+  </div>");
+
+  function onmessage(message) {
+    var rendered = compiled(JSON.parse(message.data));
+    $("#main").append(rendered);
+    console.log(message);
+    }
+
+  $(document).ready(function () {
+    var ws = new WebSocket('ws://localhost:9000');
+    ws.onmessage = onmessage;
+  });
+</script>
+
+</html>
