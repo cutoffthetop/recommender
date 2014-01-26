@@ -19,24 +19,24 @@ public class Recommender {
     TopologyBuilder builder = new TopologyBuilder();
 
     builder.setSpout(
-        "rabbitmq",
-        new PythonSpout("rabbitmq.py", "timestamp", "path", "user"),
-        1);
-
-    builder.setSpout(
         "zonapi",
         new PythonSpout("zonapi.py", "path"),
+        1);
+
+     builder.setBolt(
+        "item",
+        new PythonBolt("item.py", "path"),
+        1).shuffleGrouping("zonapi");
+
+    builder.setSpout(
+        "rabbitmq",
+        new PythonSpout("rabbitmq.py", "timestamp", "path", "user"),
         1);
 
     builder.setBolt(
         "user",
         new PythonBolt("user.py", "user", "paths"),
         1).shuffleGrouping("rabbitmq");
-
-    builder.setBolt(
-        "item",
-        new PythonBolt("item.py", "path"),
-        1).shuffleGrouping("zonapi");
 
     builder.setBolt(
         "recommendation",
@@ -48,7 +48,8 @@ public class Recommender {
     conf.setMaxTaskParallelism(1);
 
     // TODO: Read config data from file.
-    conf.put("zeit.recommend.elasticsearch.host", "localhost");
+    // conf.put("zeit.recommend.elasticsearch.host", "localhost");
+    conf.put("zeit.recommend.elasticsearch.host", "217.13.68.236");
     conf.put("zeit.recommend.elasticsearch.port", 9200);
     conf.put("zeit.recommend.rabbitmq.exchange", "zr_spout");
     conf.put("zeit.recommend.rabbitmq.host", "217.13.68.236");
@@ -63,7 +64,7 @@ public class Recommender {
     LocalCluster cluster = new LocalCluster();
     cluster.submitTopology("zeit-recommend", conf, builder.createTopology());
 
-    Thread.sleep(1 * 60 * 60 * 1000);
+    Thread.sleep(1 * 1 * 60 * 1000);
     cluster.shutdown();
   }
 }

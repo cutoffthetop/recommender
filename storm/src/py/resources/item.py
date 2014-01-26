@@ -42,10 +42,14 @@ class ItemIndexBolt(Bolt):
             body = {
                 'item': {
                     'properties': {
-                        'path': {'type': 'string'},
+                        'path': {
+                            'type': 'string',
+                            'store': 'yes',
+                            'index': 'not_analyzed'
+                            },
                         'title': {'type': 'string'},
                         'teaser': {'type': 'string'},
-                        'timestamp': {'type', 'integer'}
+                        'timestamp': {'type': 'date'}
                         },
                     '_id': {'path': 'path'}
                     }

@@ -37,6 +37,7 @@ class UserIndexBolt(Bolt):
             log('[UserIndexBolt] ConnectionError, index unreachable: %s' % e)
 
         if not ic.exists_type(index=self.index, doc_type='user'):
+            # TODO: Map out properties of nested events.
             body = {
                 'user': {
                     'properties': {
