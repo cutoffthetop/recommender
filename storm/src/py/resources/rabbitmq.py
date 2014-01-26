@@ -26,7 +26,7 @@ class RabbitMQSpout(Spout):
         exchange = conf.get('zeit.recommend.rabbitmq.exchange', '')
         type_ = conf.get('zeit.recommend.rabbitmq.type', 'direct')
         key = conf.get('zeit.recommend.rabbitmq.key', '')
-        self.throughput = conf.get('zeit.recommend.rabbitmq.throughput', 100)
+        self.throughput = conf.get('zeit.recommend.rabbitmq.throughput', 1.0)
 
         parameters = pika.ConnectionParameters(host=host, port=port)
         connection = pika.BlockingConnection(parameters=parameters)
@@ -46,7 +46,7 @@ class RabbitMQSpout(Spout):
     def nextTuple(self):
         raw = self.channel.basic_get(queue=self.queue, no_ack=True)[2]
         # TODO: Investigate (None, None, None) issue!
-        if raw and random.randint(0, 100000 / self.throughput) < 1000:
+        if raw and random.random() < self.throughput:
             parsed = json.loads(raw)
             user = urllib.unquote(parsed['user']).strip('";').replace('|', '')
             ts = mktime(strptime(parsed['timestamp'], '%Y-%m-%d %H:%M:%S %Z'))
