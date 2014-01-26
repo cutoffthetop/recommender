@@ -12,7 +12,8 @@
 
 from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
-from storm import Bolt, emit
+from elasticsearch.exceptions import ConnectionError
+from storm import Bolt, emit, log
 from datetime import date, datetime
 from urllib import urlopen, urlencode
 import re
@@ -31,8 +32,11 @@ class ItemIndexBolt(Bolt):
         self.index = '%s-%s' % date.today().isocalendar()[:2]
         ic = IndicesClient(self.es)
 
-        if not ic.exists(self.index):
-            ic.create(self.index)
+        try:
+            if not ic.exists(self.index):
+                ic.create(self.index)
+        except ConnectionError, e:
+            log('[ItemIndexBolt] ConnectionError, index unreachable: %s' % e)
 
         if not ic.exists_type(index=self.index, doc_type='item'):
             body = {

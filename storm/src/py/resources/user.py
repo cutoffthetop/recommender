@@ -14,6 +14,7 @@ from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
 from elasticsearch.exceptions import NotFoundError
 from elasticsearch.exceptions import TransportError
+from elasticsearch.exceptions import ConnectionError
 from storm import Bolt, log, emit
 from datetime import date
 import math
@@ -29,8 +30,11 @@ class UserIndexBolt(Bolt):
         self.index = '%s-%s' % date.today().isocalendar()[:2]
         ic = IndicesClient(self.es)
 
-        if not ic.exists(self.index):
-            ic.create(self.index)
+        try:
+            if not ic.exists(self.index):
+                ic.create(self.index)
+        except ConnectionError, e:
+            log('[UserIndexBolt] ConnectionError, index unreachable: %s' % e)
 
         if not ic.exists_type(index=self.index, doc_type='user'):
             body = {
@@ -74,7 +78,7 @@ class UserIndexBolt(Bolt):
             body = {'events': [event]}
         except TransportError, e:
             # TODO: What is going wrong here?
-            log('[ObservationBolt] TransportError, get failed: %s' % e)
+            log('[UserIndexBolt] TransportError, get failed: %s' % e)
             return
 
         events = list(i['path'] for i in body['events'])
@@ -87,7 +91,7 @@ class UserIndexBolt(Bolt):
             self.es.index(self.index, 'user', body, **kwargs)
         except TransportError, e:
             # TODO: What is going wrong here?
-            log('[ObservationBolt] TransportError, index failed: %s' % e)
+            log('[UserIndexBolt] TransportError, index failed: %s' % e)
 
 if __name__ == '__main__':
     UserIndexBolt().run()
