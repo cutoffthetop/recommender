@@ -25,12 +25,18 @@
       <div class="col-md-8 recommended"></div>
     </div>
   </template>
+  <template id="template-entry">
+    <div class="entry">
+      <a class="link"><h5 class="header"></h5></a>
+      <small class="teaser"></small>
+    </div>
+  </template>
   <script type="text/javascript">
     var ws;
 
     function getUserID() {
       var arr = document.cookie.split(";");
-      for(var i=0; i<arr.length; i++) {
+      for (var i=0; i<arr.length; i++) {
         var c = arr[i].trim();
         if (c.indexOf("wt3_eid")==0) {
           userID = decodeURIComponent(c.substring(8, c.length));
@@ -40,6 +46,21 @@
       return "";
     }
 
+    function renderEntry(data) {
+      var entry = document.querySelector("#template-entry");
+
+      var link = "http://www.zeit.de" + data.path;
+      entry.content.querySelector(".link").setAttribute("href", link);
+
+      var header = data.title;
+      entry.content.querySelector(".header").textContent = header;
+
+      var teaser = data.teaser;
+      entry.content.querySelector(".teaser").textContent = teaser;
+
+      return document.importNode(entry.content, true);
+    }
+
     function onopen (event) {
       var userID = getUserID()
       event.srcElement.send(userID);
@@ -47,11 +68,22 @@
 
     function onmessage(event) {
       var parsed = JSON.parse(event.data);
-      var t = document.querySelector("#template-row");
-      t.content.querySelector(".recommended").textContent = parsed.recommended;
-      t.content.querySelector(".requested").textContent = parsed.requested;
-      var clone = document.importNode(t.content, true);
-      document.querySelector("#main").appendChild(clone);
+      var row = document.querySelector("#template-row");
+
+      for (var i=0; i<parsed.recommended.length; i++) {
+        var entryClone = renderEntry(parsed.recommended[i]);
+        row.content.querySelector(".recommended").appendChild(entryClone);
+      }
+
+      for (var i=0; i<parsed.requested.length; i++) {
+        var entryClone = renderEntry(parsed.requested[i]);
+        row.content.querySelector(".requested").appendChild(entryClone);
+      }
+
+      // row.content.querySelector(".requested").textContent = parsed.requested;
+
+      var rowClone = document.importNode(row.content, true);
+      document.querySelector("#main").appendChild(rowClone);
     }
 
     window.onload = function() {
