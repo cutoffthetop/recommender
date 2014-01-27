@@ -43,23 +43,21 @@
       return "";
       }
 
-    function onopen (argument) {
+    function onopen (event) {
       var userID = getUserID()
-      ws.send(userID);
-      console.log(userID);
-    }
+      event.srcElement.send(userID);
+      }
 
-    function onmessage(message) {
-      var rendered = compiled(JSON.parse(message.data));
+    function onmessage(event) {
+      var rendered = compiled(JSON.parse(event.data));
       $("#main").append(rendered);
-      console.log(message);
       }
 
     $(document).ready(function () {
       var ws = new WebSocket('ws://localhost:9000');
       ws.onmessage = onmessage;
       ws.onopen = onopen;
-    });
+      });
   </script>
 </body>
 </html>
