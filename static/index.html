@@ -16,7 +16,6 @@
     .row {
       padding: 10px;
     }
-
   </style>
 </head>
 
@@ -24,25 +23,37 @@
   <div id="main" class="container">
     <h1>Zeit Recommend</h1>
   </div>
+
+  <script type="text/javascript">
+    var compiled = _.template(
+    "<div class=\"row\">\
+      <div class=\"col-md-4\"><%= requested %></div>\
+      <div class=\"col-md-8\"><%= recommended %></div>\
+    </div>");
+
+    function getUserID() {
+      var arr = document.cookie.split(';');
+      for(var i=0; i<arr.length; i++) {
+        var c = arr[i].trim();
+        if (c.indexOf("wt3_eid")==0) {
+          userID = decodeURIComponent(c.substring(8, c.length));
+          return userID.replace(";", "").replace("|", "");
+          }
+        }
+      return "";
+      }
+
+    function onmessage(message) {
+      var rendered = compiled(JSON.parse(message.data));
+      $("#main").append(rendered);
+      console.log(message);
+      }
+
+    $(document).ready(function () {
+      var ws = new WebSocket('ws://localhost:9000');
+      ws.onmessage = onmessage;
+      ws.send(getUserID());
+    });
+  </script>
 </body>
-
-<script type="text/javascript">
-  var compiled = _.template(
-  "<div class=\"row\">\
-    <div class=\"col-md-4\"><%= requested %></div>\
-    <div class=\"col-md-8\"><%= recommended %></div>\
-  </div>");
-
-  function onmessage(message) {
-    var rendered = compiled(JSON.parse(message.data));
-    $("#main").append(rendered);
-    console.log(message);
-    }
-
-  $(document).ready(function () {
-    var ws = new WebSocket('ws://localhost:9000');
-    ws.onmessage = onmessage;
-  });
-</script>
-
 </html>
