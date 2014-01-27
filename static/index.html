@@ -43,6 +43,12 @@
       return "";
       }
 
+    function onopen (argument) {
+      var userID = getUserID()
+      ws.send(userID);
+      console.log(userID);
+    }
+
     function onmessage(message) {
       var rendered = compiled(JSON.parse(message.data));
       $("#main").append(rendered);
@@ -52,7 +58,7 @@
     $(document).ready(function () {
       var ws = new WebSocket('ws://localhost:9000');
       ws.onmessage = onmessage;
-      ws.send(getUserID());
+      ws.onopen = onopen;
     });
   </script>
 </body>
