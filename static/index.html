@@ -3,11 +3,7 @@
 <head>
   <meta content="utf-8" http-equiv="encoding">
   <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
-  <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css">
-  <script src="http://cdnjs.cloudflare.com/ajax/libs/moment.js/2.4.0/moment.min.js"></script>
-  <script src="http://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
-  <script src="http://cdnjs.cloudflare.com/ajax/libs/holder/2.2.0/holder.js"></script>
-  <script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+  <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
   <title>Zeit Recommend</title>
   <style type="text/css">
     .row:not(:last-child) {
@@ -23,41 +19,50 @@
   <div id="main" class="container">
     <h1>Zeit Recommend</h1>
   </div>
-
+  <template id="template-row">
+    <div class="row">
+      <div class="col-md-4 requested"></div>
+      <div class="col-md-8 recommended"></div>
+    </div>
+  </template>
   <script type="text/javascript">
-    var compiled = _.template(
-    "<div class=\"row\">\
-      <div class=\"col-md-4\"><%= requested %></div>\
-      <div class=\"col-md-8\"><%= recommended %></div>\
-    </div>");
+    var ws;
 
     function getUserID() {
-      var arr = document.cookie.split(';');
+      var arr = document.cookie.split(";");
       for(var i=0; i<arr.length; i++) {
         var c = arr[i].trim();
         if (c.indexOf("wt3_eid")==0) {
           userID = decodeURIComponent(c.substring(8, c.length));
           return userID.replace(";", "").replace("|", "");
-          }
         }
-      return "";
       }
+      return "";
+    }
 
     function onopen (event) {
       var userID = getUserID()
       event.srcElement.send(userID);
-      }
+    }
 
     function onmessage(event) {
-      var rendered = compiled(JSON.parse(event.data));
-      $("#main").append(rendered);
-      }
+      var parsed = JSON.parse(event.data);
+      var t = document.querySelector("#template-row");
+      t.content.querySelector(".recommended").textContent = parsed.recommended;
+      t.content.querySelector(".requested").textContent = parsed.requested;
+      var clone = document.importNode(t.content, true);
+      document.querySelector("#main").appendChild(clone);
+    }
 
-    $(document).ready(function () {
-      var ws = new WebSocket('ws://localhost:9000');
+    window.onload = function() {
+      ws = new WebSocket("ws://localhost:9000");
       ws.onmessage = onmessage;
       ws.onopen = onopen;
-      });
+    };
+
+    window.onbeforeunload = function() {
+      ws.close();
+    };
   </script>
 </body>
 </html>
