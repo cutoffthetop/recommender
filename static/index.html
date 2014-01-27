@@ -26,7 +26,7 @@
     </div>
   </template>
   <template id="template-entry">
-    <div class="entry">
+    <div class="entry col-md-4">
       <a class="link"><h5 class="header"></h5></a>
       <small class="teaser"></small>
     </div>
@@ -49,7 +49,7 @@
     function renderEntry(data) {
       var entry = document.querySelector("#template-entry");
 
-      var link = "http://www.zeit.de" + data.path;
+      var link = "http://www.zeit.de/" + data.path;
       entry.content.querySelector(".link").setAttribute("href", link);
 
       var header = data.title;
