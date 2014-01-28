@@ -10,9 +10,11 @@
     License: BSD, see LICENSE for more details.
 """
 
-from storm import Bolt, log
+from storm import Bolt
+from storm import log
 from threading import Thread
-from urllib import urlopen, urlencode
+from urllib import urlencode
+from urllib import urlopen
 from ws4py.server.wsgirefserver import WebSocketWSGIRequestHandler
 from ws4py.server.wsgirefserver import WSGIServer
 from ws4py.server.wsgiutils import WebSocketWSGIApplication
@@ -24,6 +26,10 @@ import json
 _clients = {}
 _server = None
 
+LOREM = (
+    'Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam '
+    'nonumy tempor invidunt ut labore et dolore magna aliquyam erat sed.'
+    )
 
 class OutletWebSocket(WebSocket):
     def received_message(self, message):
@@ -48,13 +54,14 @@ class OutletBolt(Bolt):
                 fl='title,teaser_text'
                 )
             data = urlopen(self.url, urlencode(params)).read()
-            results = json.loads(data)['response']['docs']
-            if not len(results):
+            try:
+                result = json.loads(data)['response']['docs'][0]
+            except:
                 continue
 
             yield dict(
-                teaser=results[0].get('teaser_text', 'N/A'),
-                title=results[0].get('title', 'N/A'),
+                teaser=result.get('teaser_text', LOREM),
+                title=result.get('title', LOREM[:21]),
                 path=path
                 )
 
@@ -66,8 +73,9 @@ class OutletBolt(Bolt):
             requested=list(self.resolve_paths(requested))
             )
 
-        #if user in _clients:
-            #ws = _server.manager.websockets[_clients[user]]
+        # TODO: Disable broadcasting and whitelist user IDs.
+        # if user in _clients:
+        #     ws = _server.manager.websockets[_clients[user]]
         for ws in _server.manager.websockets.values():
             ws.send(json.dumps(message))
 
