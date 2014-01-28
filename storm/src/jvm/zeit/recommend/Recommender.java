@@ -59,18 +59,18 @@ public class Recommender {
     conf.put("zeit.recommend.rabbitmq.host", "217.13.68.236");
     conf.put("zeit.recommend.rabbitmq.key", "logstash");
     conf.put("zeit.recommend.rabbitmq.port", 5672);
-    conf.put("zeit.recommend.rabbitmq.throughput", 0.1);
-    conf.put("zeit.recommend.svd.base", 5000);
-    conf.put("zeit.recommend.svd.rank", 250);
+    conf.put("zeit.recommend.rabbitmq.throughput", 0.01);
+    conf.put("zeit.recommend.svd.base", 1000);
+    conf.put("zeit.recommend.svd.rank", 120);
     conf.put("zeit.recommend.zonapi.host", "217.13.68.229");
     conf.put("zeit.recommend.zonapi.port", 8983);
-    conf.put("zeit.recommend.runtime", 300);
+    conf.put("zeit.recommend.runtime", 160);
 
     LocalCluster cluster = new LocalCluster();
     cluster.submitTopology("zeit-recommend", conf, builder.createTopology());
 
     Object runtime = conf.get("zeit.recommend.runtime");
-    if ((Integer)(runtime)> 0) {
+    if ((Integer)(runtime) > 0) {
         Thread.sleep((Integer)(runtime) * 1000);
         cluster.shutdown();
     }
