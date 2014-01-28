@@ -43,6 +43,11 @@ public class Recommender {
         new PythonBolt("recommendation.py", "user", "events", "recommendations"),
         1).shuffleGrouping("user");
 
+    builder.setBolt(
+        "outlet",
+        new PythonBolt("outlet.py"),
+        1).shuffleGrouping("recommendation");
+
     Config conf = new Config();
     conf.setDebug(false);
     conf.setMaxTaskParallelism(1);
