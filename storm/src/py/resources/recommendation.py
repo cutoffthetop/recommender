@@ -11,20 +11,24 @@
 """
 
 from elasticsearch import Elasticsearch
-from storm import Bolt, log, emit
+from storm import Bolt
+from storm import emit
+from storm import log
 import numpy as np
-import scipy.spatial
 import scipy.linalg
+import scipy.spatial
 
 
 class RecommendationBolt(Bolt):
     def initialize(self, conf, context):
+        log('[DEBUG] Initializing SVD: Start')
         self.host = conf.get('zeit.recommend.elasticsearch.host', 'localhost')
         self.port = conf.get('zeit.recommend.elasticsearch.port', 9200)
         base = conf.get('zeit.recommend.svd.base', 18)
         k = conf.get('zeit.recommend.svd.rank', 3)
 
-        seed = dict(self.generate_seed(size=base))
+        # TODO: Make from_ and threshold configurable.
+        seed = dict(self.generate_seed(size=base, threshold=0.3, from_=50000))
 
         self.cols = sorted(set([i for j in seed.values() for i in j]))
         self.rows = sorted(seed.keys())
@@ -39,6 +43,7 @@ class RecommendationBolt(Bolt):
         self.U_k = U[:, :k]
         self.S_k_inv = np.linalg.inv(np.diag(S)[:k, :k])
         self.V_t_k = V_t[:k, :]
+        log('[DEBUG] Initializing SVD: Finish')
 
     def generate_seed(self, from_=0, size=1000, threshold=0.0):
         body = {
@@ -93,11 +98,18 @@ class RecommendationBolt(Bolt):
             (self.V_t_k.shape[1] - vector.shape[0]) * [0]
             )
         query = np.dot(self.S_k_inv, np.dot(self.V_t_k, vector))
-        for row in range(0, self.V_t_k.shape[1]):
-            distance = scipy.spatial.distance.cosine(query, self.V_t_k[:, row])
-            if distance >= proximity:
-                for col in range(len(self.A[row, :])):
-                    if self.A[row, col] > vector[col]:
+        # for row in range(0, self.V_t_k.shape[1]):
+        #     distance = scipy.spatial.distance.cosine(query, self.V_t_k[:, row])
+        #     if distance >= proximity:
+        #         for col in range(len(self.A[row, :])):
+        #             if self.A[row, col] > vector[col]:
+        #                 yield self.cols[col]
+
+        for col in range(0, self.V_t_k.shape[1]):
+            dist = scipy.spatial.distance.cosine(query, self.V_t_k[:, col])
+            if dist >= proximity:
+                for row in range(len(self.A[:, col])):
+                    if self.A[row, col] > vector[row]:
                         yield self.cols[col]
 
     def process(self, tup):
@@ -109,11 +121,13 @@ class RecommendationBolt(Bolt):
             return
 
         vector = np.array(self.expand({user: events}).next())
-        self.fold_in_user(vector)
-        recommendations = list(set(self.recommend(vector)))
+        # TODO: Folding in seems to be broken.
+        # self.fold_in_user(vector)
 
-        # Emitting   (user, events,   recommendations  )
-        # Encoded as (user, (event*), (recommendation*))
+        # TODO: Make proximity configurable.
+        recommendations = list(set(self.recommend(vector, proximity=1.1)))[:10]
+        events = list(set(events))[:100]
+
         emit([user, events, recommendations])
 
 if __name__ == '__main__':
