@@ -53,7 +53,6 @@ public class Recommender {
     conf.setMaxTaskParallelism(1);
 
     // TODO: Read config data from file.
-    // conf.put("zeit.recommend.elasticsearch.host", "localhost");
     conf.put("zeit.recommend.elasticsearch.host", "217.13.68.236");
     conf.put("zeit.recommend.elasticsearch.port", 9200);
     conf.put("zeit.recommend.rabbitmq.exchange", "zr_spout");
@@ -65,11 +64,15 @@ public class Recommender {
     conf.put("zeit.recommend.svd.rank", 250);
     conf.put("zeit.recommend.zonapi.host", "217.13.68.229");
     conf.put("zeit.recommend.zonapi.port", 8983);
+    conf.put("zeit.recommend.runtime", 300);
 
     LocalCluster cluster = new LocalCluster();
     cluster.submitTopology("zeit-recommend", conf, builder.createTopology());
 
-    Thread.sleep(1 * 1 * 60 * 1000);
-    cluster.shutdown();
+    Object runtime = conf.get("zeit.recommend.runtime");
+    if ((Integer)(runtime)> 0) {
+        Thread.sleep((Integer)(runtime) * 1000);
+        cluster.shutdown();
+    }
   }
 }
