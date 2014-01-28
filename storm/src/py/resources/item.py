@@ -10,14 +10,18 @@
     License: BSD, see LICENSE for more details.
 """
 
+from datetime import date
+from datetime import datetime
 from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
 from elasticsearch.exceptions import ConnectionError
-from storm import Bolt, emit, log
-from datetime import date, datetime
-from urllib import urlopen, urlencode
-import re
+from storm import Bolt
+from storm import emit
+from storm import log
+from urllib import urlencode
+from urllib import urlopen
 import json
+import re
 
 
 class ItemIndexBolt(Bolt):
