@@ -110,7 +110,8 @@ class RecommendationBolt(Bolt):
 
         vector = np.array(self.expand({user: events}).next())
         self.fold_in_user(vector)
-        recommendations = list(self.recommend(vector))
+        recommendations = list(set(self.recommend(vector)))
+
         # Emitting   (user, events,   recommendations  )
         # Encoded as (user, (event*), (recommendation*))
         emit([user, events, recommendations])
