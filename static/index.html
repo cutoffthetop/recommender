@@ -35,7 +35,7 @@
   </div>
   <template id="template-row">
     <div class="row">
-      <div class="col-md-4 requested"></div>
+      <div class="col-ld-4 requested"></div>
       <div class="col-md-8 recommended"></div>
     </div>
   </template>
@@ -63,7 +63,7 @@
     function renderEntry(data) {
       var entry = document.querySelector("#template-entry");
 
-      var link = "http://www.zeit.de/" + data.path;
+      var link = "http://www.zeit.de" + data.path;
       entry.content.querySelector(".link").setAttribute("href", link);
 
       var header = data.title;
@@ -95,7 +95,8 @@
       }
 
       var rowClone = document.importNode(row.content, true);
-      document.querySelector("#main").appendChild(rowClone);
+      var main = document.querySelector("#main");
+      main.insertBefore(rowClone, main.firstChild);
     }
 
     window.onload = function() {

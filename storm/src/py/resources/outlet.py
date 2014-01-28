@@ -53,8 +53,8 @@ class OutletBolt(Bolt):
                 continue
 
             yield dict(
-                teaser=results[0]['teaser_text'],
-                title=results[0]['title'],
+                teaser=results[0].get('teaser_text', 'N/A'),
+                title=results[0].get('title', 'N/A'),
                 path=path
                 )
 
