@@ -10,9 +10,12 @@
     License: BSD, see LICENSE for more details.
 """
 
-from storm import Spout, emit, log
+from storm import emit
+from storm import log
+from storm import Spout
+from time import mktime
+from time import strptime
 from uuid import uuid4
-from time import mktime, strptime
 import json
 import pika
 import random
@@ -27,6 +30,7 @@ class RabbitMQSpout(Spout):
         type_ = conf.get('zeit.recommend.rabbitmq.type', 'direct')
         key = conf.get('zeit.recommend.rabbitmq.key', '')
         self.throughput = conf.get('zeit.recommend.rabbitmq.throughput', 1.0)
+        self.buffer = {}
 
         parameters = pika.ConnectionParameters(host=host, port=port)
         connection = pika.BlockingConnection(parameters=parameters)
@@ -38,10 +42,17 @@ class RabbitMQSpout(Spout):
 
     def ack(self, msg_id):
         # TODO: Properly implement amqp acking.
-        log('[RabbitMQSpout] Acknowledging message id-%s.' % msg_id)
+        tup, retries = self.buffer[msg_id]
+        del self.buffer[msg_id]
 
     def fail(self, msg_id):
-        log('[RabbitMQSpout] Message id-%s is failing.' % msg_id)
+        tup, retries = self.buffer[msg_id]
+        if retries >= 5:
+            del self.buffer[msg_id]
+            log('[RabbitMQSpout] Message %s failed for good.' % msg_id)
+        else:
+            self.buffer[msg_id] = (tup, retries + 1)
+            emit(tup, id=msg_id)
 
     def nextTuple(self):
         raw = self.channel.basic_get(queue=self.queue, no_ack=True)[2]
@@ -49,8 +60,13 @@ class RabbitMQSpout(Spout):
         if raw and random.random() < self.throughput:
             parsed = json.loads(raw)
             user = urllib.unquote(parsed['user']).strip('";').replace('|', '')
+            if not len(user):
+                return
             ts = mktime(strptime(parsed['timestamp'], '%Y-%m-%d %H:%M:%S %Z'))
-            emit([int(ts * 1000), parsed['path'], user], id=str(uuid4()))
+            msg_id = str(uuid4())
+            tup = [int(ts * 1000), parsed['path'], user]
+            self.buffer[msg_id] = (tup, 0)
+            emit(tup, id=msg_id)
 
 if __name__ == '__main__':
     RabbitMQSpout().run()

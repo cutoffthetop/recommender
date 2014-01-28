@@ -11,9 +11,12 @@
 """
 
 from datetime import datetime
-from storm import Spout, emit, log
+from storm import emit
+from storm import log
+from storm import Spout
 from time import sleep
-from urllib import urlopen, urlencode
+from urllib import urlencode
+from urllib import urlopen
 from uuid import uuid4
 import json
 
@@ -24,12 +27,22 @@ class ZonAPISpout(Spout):
         port = conf.get('zeit.recommend.zonapi.port', 8983)
         self.url = 'http://%s:%s/solr/select' % (host, port)
         self.time_range = [datetime.now(), ] * 2
+        self.earliest = datetime(2000, 1, 1)
+        self.buffer = {}
 
     def ack(self, cnt_id):
+        tup, retries = self.buffer[cnt_id]
+        del self.buffer[cnt_id]
         log('[ZonAPISpout] Acknowledging content id-%s.' % cnt_id)
 
     def fail(self, cnt_id):
-        log('[ZonAPISpout] Content id-%s is failing.' % cnt_id)
+        tup, retries = self.buffer[cnt_id]
+        if retries >= 5:
+            del self.buffer[cnt_id]
+            log('[ZonAPISpout] Message %s failed for good.' % cnt_id)
+        else:
+            self.buffer[cnt_id] = (tup, retries + 1)
+            emit(tup, id=cnt_id)
 
     def get_docs(self, from_, to, sort):
         # TODO: This is not parallelizable.
@@ -50,15 +63,16 @@ class ZonAPISpout(Spout):
         if docs:
             self.time_range[1] = datetime.now()
         else:
-            docs = self.get_docs(datetime(2000, 1, 1), self.time_range[0],
-                                 'desc')
+            docs = self.get_docs(self.earliest, self.time_range[0], 'desc')
             if docs:
-                self.time_range[0] = datetime.strptime(docs[0]['release_date'],
-                                                       '%Y-%m-%dT%H:%M:%SZ')
+                args = docs[0]['release_date'], '%Y-%m-%dT%H:%M:%SZ'
+                self.time_range[0] = datetime.strptime(*args)
         if docs:
-            # Emitting   (path)
-            # Encoded as (path)
-            emit([docs[0]['href'][18:]], id=str(uuid4()))
+            cnt_id = str(uuid4())
+            tup = [docs[0]['href'][18:]]
+            self.buffer[cnt_id] = (tup, 0)
+            emit(tup, id=cnt_id)
+
         sleep(1.0)
 
 if __name__ == '__main__':
