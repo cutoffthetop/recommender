@@ -6,18 +6,32 @@
   <link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
   <title>Zeit Recommend</title>
   <style type="text/css">
+    h1 {
+      display: inline-block;
+    }
     .row:not(:last-child) {
       border-bottom: 1px solid #eee;
     }
     .row {
       padding: 10px;
     }
+    .userID {
+      margin-top: 40px;
+      font-weight: bold;
+    }
+    .userID:before {
+      content: "User ID ";
+      font-weight: normal;
+    }
   </style>
 </head>
 
 <body>
-  <div id="main" class="container">
+  <div class="container">
     <h1>Zeit Recommend</h1>
+    <p class="pull-right userID">undefined</p>
+    <div id="main">
+    </div>
   </div>
   <template id="template-row">
     <div class="row">
@@ -80,8 +94,6 @@
         row.content.querySelector(".requested").appendChild(entryClone);
       }
 
-      // row.content.querySelector(".requested").textContent = parsed.requested;
-
       var rowClone = document.importNode(row.content, true);
       document.querySelector("#main").appendChild(rowClone);
     }
@@ -90,6 +102,10 @@
       ws = new WebSocket("ws://localhost:9000");
       ws.onmessage = onmessage;
       ws.onopen = onopen;
+      var userID = getUserID();
+      if (userID.length) {
+        document.querySelector(".userID").textContent = userID;
+      }
     };
 
     window.onbeforeunload = function() {
