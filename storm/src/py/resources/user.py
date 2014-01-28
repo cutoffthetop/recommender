@@ -10,13 +10,17 @@
     License: BSD, see LICENSE for more details.
 """
 
+from datetime import date
 from elasticsearch import Elasticsearch
 from elasticsearch.client import IndicesClient
+from elasticsearch.exceptions import ConnectionError
 from elasticsearch.exceptions import NotFoundError
 from elasticsearch.exceptions import TransportError
-from elasticsearch.exceptions import ConnectionError
-from storm import Bolt, log, emit
-from datetime import date
+from storm import ack
+from storm import Bolt
+from storm import emit
+from storm import fail
+from storm import log
 import math
 import re
 
@@ -35,6 +39,7 @@ class UserIndexBolt(Bolt):
                 ic.create(self.index)
         except ConnectionError, e:
             log('[UserIndexBolt] ConnectionError, index unreachable: %s' % e)
+            return
 
         if not ic.exists_type(index=self.index, doc_type='user'):
             # TODO: Map out properties of nested events.
@@ -72,27 +77,23 @@ class UserIndexBolt(Bolt):
             )
 
         try:
-            events = self.es.get('_all', kwargs['id'], 'user')
+            events = self.es.get(self.index, kwargs['id'], 'user',
+                                 preference='_primary')
+            kwargs['version'] = events['_version']
             body = {'events': events['_source']['events'] + [event]}
         except NotFoundError:
             kwargs['op_type'] = 'create'
             body = {'events': [event]}
-        except TransportError, e:
-            # TODO: What is going wrong here?
-            log('[UserIndexBolt] TransportError, get failed: %s' % e)
-            return
-
-        events = list(i['path'] for i in body['events'])
-        # Emitting   (user, events  )
-        # Encoded as (user, (path*))
-        emit([kwargs['id'], events])
 
         try:
-            body['rank'] = math.log10(len(events)) / 2
+            body['rank'] = math.log10(len(body['events'])) / 2
             self.es.index(self.index, 'user', body, **kwargs)
-        except TransportError, e:
-            # TODO: What is going wrong here?
-            log('[UserIndexBolt] TransportError, index failed: %s' % e)
+            paths = list(event['path'] for event in body['events'])
+            emit([kwargs['id'], paths])
+            ack(tup)
+        except TransportError:
+            fail(tup)
+
 
 if __name__ == '__main__':
     UserIndexBolt().run()
