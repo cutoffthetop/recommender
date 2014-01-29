@@ -68,36 +68,48 @@
     }
 
     function renderLabels(data) {
-      var label = document.querySelector("#template-label");
-
-      var label = data;
-      label.content.querySelector(".label").textContent = label;
+      var label = document.querySelector("#template-label").cloneNode(true);
+      label.content.querySelector(".label").textContent = data;
 
       return document.importNode(label.content, true);
     }
 
     function renderEntry(data) {
-      var entry = document.querySelector("#template-entry");
+      var entry = document.querySelector("#template-entry").cloneNode(true);
 
-      var link = "http://www.zeit.de" + data.path;
-      entry.content.querySelector(".link").setAttribute("href", link);
+      entry.content.querySelector(".link").setAttribute("href", data.href);
 
-      var header = data.title;
-      entry.content.querySelector(".header").textContent = header;
+      entry.content.querySelector(".header").textContent = data.title;
 
-      var teaser = data.teaser;
-      entry.content.querySelector(".teaser").textContent = teaser;
+      entry.content.querySelector(".teaser").textContent = data.teaser_text;
 
-      for (var i=0; i<data.labels.length; i++) {
-        var labelClone = renderLabels(data.labels[i]);
-        entry.content.querySelector(".labels").appendChild(labelClone);
+      if (data.author) {
+        for (var i=0; i<data.author.length; i++) {
+          var authorClone = renderLabels(data.author[i]);
+          entry.content.querySelector(".labels").appendChild(authorClone);
+        }
+      }
+
+      if (data.release_date) {
+        var releaseDateClone = renderLabels(data.release_date);
+        entry.content.querySelector(".labels").appendChild(releaseDateClone);
+      }
+
+      if (data.department) {
+        var departmentClone = renderLabels(data.department);
+        entry.content.querySelector(".labels").appendChild(departmentClone);
+      }
+
+      if (data.sub_department) {
+        var sub_departmentClone = renderLabels(data.sub_department);
+        entry.content.querySelector(".labels").appendChild(sub_departmentClone);
       }
 
       return document.importNode(entry.content, true);
     }
 
     function renderRow(data) {
-      var row = document.querySelector("#template-row");
+      var row = document.querySelector("#template-row").cloneNode(true);
 
       for (var i=0; i<data.recommended.length; i++) {
         var entryClone = renderEntry(data.recommended[i]);
