@@ -26,10 +26,6 @@ import json
 _clients = {}
 _server = None
 
-LOREM = (
-    'Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam '
-    'nonumy tempor invidunt ut labore et dolore magna aliquyam erat sed.'
-    )
 
 class OutletWebSocket(WebSocket):
     def received_message(self, message):
@@ -51,19 +47,20 @@ class OutletBolt(Bolt):
             params = dict(
                 wt='json',
                 q='href:*%s' % path,
-                fl='title,teaser_text'
+                fl=('title,teaser_text,keyword,release_date,author,department,'
+                    'sub_department,href')
                 )
-            data = urlopen(self.url, urlencode(params)).read()
             try:
-                result = json.loads(data)['response']['docs'][0]
-            except:
-                continue
-
-            yield dict(
-                teaser=result.get('teaser_text', LOREM),
-                title=result.get('title', LOREM[:21]),
-                path=path
-                )
+                data = urlopen(self.url, urlencode(params)).read()
+                yield json.loads(data)['response']['docs'][0]
+            except Exception, e:
+                yield dict(
+                    title='zeit.de' + path,
+                    teaser_text=('Lorem ipsum dolor sit amet, consetetur sadip'
+                                 'scing elitr, sed diam nonumy eirmod tempor i'
+                                 'nvidunt ut labore et dolore magna sed est.'),
+                    href='http://www.zeit.de' + path
+                    )
 
     def process(self, tup):
         user, requested, recommended = tup.values
