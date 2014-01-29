@@ -89,6 +89,11 @@
       var teaser = data.teaser;
       entry.content.querySelector(".teaser").textContent = teaser;
 
+      for (var i=0; i<data.keywords.length; i++) {
+        var keywordClone = renderKeyword(data.keywords[i]);
+        entry.content.querySelector(".keywords").appendChild(keywordClone);
+      }
+
       return document.importNode(entry.content, true);
     }
 
