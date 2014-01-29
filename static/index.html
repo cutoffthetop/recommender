@@ -26,7 +26,7 @@
     .recommended .header {
       color: #F40;
     }
-    .keywords {
+    .labels {
       padding: 0px;
     }
   </style>
@@ -48,10 +48,10 @@
     <div class="entry col-md-4">
       <a class="link"><h5 class="header"></h5></a>
       <small class="teaser"></small>
-      <ul class="keywords"></ul>
+      <ul class="labels"></ul>
     </div>
   </template>
-  <template id="template-keyword">
+  <template id="template-label">
     <ul class="label label-success"></ul>
   </template>
   <script type="text/javascript">
@@ -67,13 +67,13 @@
       return "";
     }
 
-    function renderKeyword(data) {
-      var keyword = document.querySelector("#template-keyword");
+    function renderLabels(data) {
+      var label = document.querySelector("#template-label");
 
       var label = data;
-      keyword.content.querySelector(".label").textContent = label;
+      label.content.querySelector(".label").textContent = label;
 
-      return document.importNode(keyword.content, true);
+      return document.importNode(label.content, true);
     }
 
     function renderEntry(data) {
@@ -88,9 +88,9 @@
       var teaser = data.teaser;
       entry.content.querySelector(".teaser").textContent = teaser;
 
-      for (var i=0; i<data.keywords.length; i++) {
-        var keywordClone = renderKeyword(data.keywords[i]);
-        entry.content.querySelector(".keywords").appendChild(keywordClone);
+      for (var i=0; i<data.labels.length; i++) {
+        var labelClone = renderLabels(data.labels[i]);
+        entry.content.querySelector(".labels").appendChild(labelClone);
       }
 
       return document.importNode(entry.content, true);
