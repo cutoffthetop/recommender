@@ -70,7 +70,7 @@
     function renderKeyword(data) {
       var keyword = document.querySelector("#template-keyword");
 
-      var label = data.name;
+      var label = data;
       keyword.content.querySelector(".label").textContent = label;
 
       return document.importNode(keyword.content, true);
