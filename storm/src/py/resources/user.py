@@ -63,9 +63,8 @@ class UserIndexBolt(Bolt):
                 )
 
     def process(self, tup):
-        path = tup.values[1].rstrip('/')
-        if self.match(path):
-            path = path.rsplit('/', 1)[0]
+        segments = tup.values[1].rstrip('/').rsplit('/', 1)
+        path = segments[0] if self.match(segments[-1]) else '/'.join(segments)
 
         event = dict(
             timestamp=tup.values[0],
@@ -77,6 +76,7 @@ class UserIndexBolt(Bolt):
             )
 
         try:
+            # TODO: Retrieve users from all indicies.
             events = self.es.get(self.index, kwargs['id'], 'user',
                                  preference='_primary')
             kwargs['version'] = events['_version']
