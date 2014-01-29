@@ -31,7 +31,7 @@ class UserIndexBolt(Bolt):
         port = conf.get('zeit.recommend.elasticsearch.port', 9200)
         self.es = Elasticsearch(hosts=[{'host': host, 'port': port}])
         self.match = re.compile('seite-[0-9]|komplettansicht').match
-        self.index = '%s-%s' % date.today().isocalendar()[:2]
+        self.index = '%s-%s-test' % date.today().isocalendar()[:2]
         ic = IndicesClient(self.es)
 
         try:
@@ -52,6 +52,9 @@ class UserIndexBolt(Bolt):
                     '_boost': {
                         'name': 'rank',
                         'null_value': 0.1
+                        },
+                    '_timestamp' : {
+                        'enabled': True
                         }
                     }
                 }

@@ -18,15 +18,15 @@ public class Recommender {
   public static void main(String[] args) throws Exception {
     TopologyBuilder builder = new TopologyBuilder();
 
-    builder.setSpout(
-        "zonapi",
-        new PythonSpout("zonapi.py", "path"),
-        1);
+    // builder.setSpout(
+    //     "zonapi",
+    //     new PythonSpout("zonapi.py", "path"),
+    //     1);
 
-     builder.setBolt(
-        "item",
-        new PythonBolt("item.py", "path"),
-        1).shuffleGrouping("zonapi");
+    //  builder.setBolt(
+    //     "item",
+    //     new PythonBolt("item.py", "path"),
+    //     1).shuffleGrouping("zonapi");
 
     builder.setSpout(
         "rabbitmq",
@@ -38,15 +38,15 @@ public class Recommender {
         new PythonBolt("user.py", "user", "paths"),
         1).shuffleGrouping("rabbitmq");
 
-    builder.setBolt(
-        "recommendation",
-        new PythonBolt("recommendation.py", "user", "events", "recommendations"),
-        1).shuffleGrouping("user");
+    // builder.setBolt(
+    //     "recommendation",
+    //     new PythonBolt("recommendation.py", "user", "events", "recommendations"),
+    //     1).shuffleGrouping("user");
 
-    builder.setBolt(
-        "outlet",
-        new PythonBolt("outlet.py"),
-        1).shuffleGrouping("recommendation");
+    // builder.setBolt(
+    //     "outlet",
+    //     new PythonBolt("outlet.py"),
+    //     1).shuffleGrouping("recommendation");
 
     Config conf = new Config();
     conf.setDebug(false);
@@ -59,12 +59,12 @@ public class Recommender {
     conf.put("zeit.recommend.rabbitmq.host", "217.13.68.236");
     conf.put("zeit.recommend.rabbitmq.key", "logstash");
     conf.put("zeit.recommend.rabbitmq.port", 5672);
-    conf.put("zeit.recommend.rabbitmq.throughput", 0.01);
+    conf.put("zeit.recommend.rabbitmq.throughput", 0.4);
     conf.put("zeit.recommend.svd.base", 1000);
     conf.put("zeit.recommend.svd.rank", 120);
     conf.put("zeit.recommend.zonapi.host", "217.13.68.229");
     conf.put("zeit.recommend.zonapi.port", 8983);
-    conf.put("zeit.recommend.runtime", 160);
+    conf.put("zeit.recommend.runtime", 860);
 
     LocalCluster cluster = new LocalCluster();
     cluster.submitTopology("zeit-recommend", conf, builder.createTopology());

@@ -28,7 +28,7 @@ class RecommendationBolt(Bolt):
         k = conf.get('zeit.recommend.svd.rank', 3)
 
         # TODO: Make from_ and threshold configurable.
-        seed = dict(self.generate_seed(size=base, threshold=0.3, from_=50000))
+        seed = dict(self.generate_seed(size=base, threshold=0.3))
 
         self.cols = sorted(set([i for j in seed.values() for i in j]))
         self.rows = sorted(seed.keys())
