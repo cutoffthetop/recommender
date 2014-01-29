@@ -26,6 +26,9 @@
     .recommended .header {
       color: #F40;
     }
+    .keywords {
+      padding: 0px;
+    }
   </style>
 </head>
 
@@ -46,11 +49,13 @@
     <div class="entry col-md-4">
       <a class="link"><h5 class="header"></h5></a>
       <small class="teaser"></small>
+      <ul class="keywords"></ul>
     </div>
   </template>
+  <template id="template-keyword">
+    <ul class="label label-success"></ul>
+  </template>
   <script type="text/javascript">
-    var ws;
-
     function getUserID() {
       var arr = document.cookie.split(";");
       for (var i=0; i<arr.length; i++) {
@@ -61,6 +66,15 @@
         }
       }
       return "";
+    }
+
+    function renderKeyword(data) {
+      var keyword = document.querySelector("#template-keyword");
+
+      var label = data.name;
+      keyword.content.querySelector(".label").textContent = label;
+
+      return document.importNode(keyword.content, true);
     }
 
     function renderEntry(data) {
@@ -78,43 +92,42 @@
       return document.importNode(entry.content, true);
     }
 
+    function renderRow(data) {
+      var row = document.querySelector("#template-row");
+
+      for (var i=0; i<data.recommended.length; i++) {
+        var entryClone = renderEntry(data.recommended[i]);
+        row.content.querySelector(".recommended").appendChild(entryClone);
+      }
+
+      for (var i=0; i<data.requested.length; i++) {
+        var entryClone = renderEntry(data.requested[i]);
+        row.content.querySelector(".requested").appendChild(entryClone);
+      }
+
+      return document.importNode(row.content, true);
+    }
+
     function onopen (event) {
       var userID = getUserID()
       event.srcElement.send(userID);
     }
 
     function onmessage(event) {
-      var parsed = JSON.parse(event.data);
-      var row = document.querySelector("#template-row");
-
-      for (var i=0; i<parsed.recommended.length; i++) {
-        var entryClone = renderEntry(parsed.recommended[i]);
-        row.content.querySelector(".recommended").appendChild(entryClone);
-      }
-
-      for (var i=0; i<parsed.requested.length; i++) {
-        var entryClone = renderEntry(parsed.requested[i]);
-        row.content.querySelector(".requested").appendChild(entryClone);
-      }
-
-      var rowClone = document.importNode(row.content, true);
+      var rowClone = renderRow(JSON.parse(event.data));
       var main = document.querySelector("#main");
       main.insertBefore(rowClone, main.firstChild);
     }
 
     window.onload = function() {
-      ws = new WebSocket("ws://localhost:9000");
+      var ws = new WebSocket("ws://localhost:9000");
       ws.onmessage = onmessage;
       ws.onopen = onopen;
       var userID = getUserID();
       if (userID.length) {
         document.querySelector(".userID").textContent = userID;
       }
-    };
-
-    window.onbeforeunload = function() {
-      ws.close();
-    };
+    }
   </script>
 </body>
 </html>
