@@ -61,11 +61,13 @@
       for (var i=0; i<arr.length; i++) {
         var c = arr[i].trim();
         if (c.indexOf("wt3_eid")==0) {
-          userID = decodeURIComponent(c.substring(8, c.length));
+          var userID = decodeURIComponent(c.substring(8, c.length));
           return userID.replace(";", "").replace("|", "");
         }
       }
-      return "";
+      var userID = ("" + Math.random()).substring(2);
+      document.cookie = "wt3_eid=" + userID;
+      return userID;
     }
 
     function renderLabels(data) {
