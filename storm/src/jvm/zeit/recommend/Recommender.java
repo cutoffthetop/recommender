@@ -64,7 +64,7 @@ public class Recommender {
     conf.put("zeit.recommend.svd.rank", 200);
     conf.put("zeit.recommend.zonapi.host", "217.13.68.229");
     conf.put("zeit.recommend.zonapi.port", 8983);
-    conf.put("zeit.recommend.runtime", 180);
+    conf.put("zeit.recommend.runtime", 420);
 
     LocalCluster cluster = new LocalCluster();
     cluster.submitTopology("zeit-recommend", conf, builder.createTopology());
