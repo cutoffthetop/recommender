@@ -79,7 +79,7 @@ class OutletBolt(Bolt):
 
 if __name__ == '__main__':
     _server = make_server(
-        'localhost',
+        '0.0.0.0',
         9000,
         server_class=WSGIServer,
         handler_class=WebSocketWSGIRequestHandler,
