@@ -77,6 +77,7 @@ class RecommendationBolt(Bolt):
             yield column
 
     def fold_in_item(self, vector):
+        if 1: return
         vector = np.append(
             vector,
             (self.V_t_k.shape[1] - vector.shape[0]) * [0]
@@ -85,6 +86,7 @@ class RecommendationBolt(Bolt):
         self.V_t_k = np.hstack((self.V_t_k, np.array([item]).T))
 
     def fold_in_user(self, vector):
+        if 1: return
         vector = np.append(
             vector,
             (self.V_t_k.shape[1] - vector.shape[0]) * [0]
@@ -93,24 +95,14 @@ class RecommendationBolt(Bolt):
         self.V_t_k = np.hstack((self.V_t_k, np.array([user]).T))
 
     def recommend(self, vector, proximity=1.0):
-        vector = np.append(
-            vector,
-            (self.V_t_k.shape[1] - vector.shape[0]) * [0]
-            )
-        query = np.dot(self.S_k_inv, np.dot(self.V_t_k, vector))
-        # for row in range(0, self.V_t_k.shape[1]):
-        #     distance = scipy.spatial.distance.cosine(query, self.V_t_k[:, row])
-        #     if distance >= proximity:
-        #         for col in range(len(self.A[row, :])):
-        #             if self.A[row, col] > vector[col]:
-        #                 yield self.cols[col]
-
-        for col in range(0, self.V_t_k.shape[1]):
-            dist = scipy.spatial.distance.cosine(query, self.V_t_k[:, col])
-            if dist >= proximity:
-                for row in range(len(self.A[:, col])):
-                    if self.A[row, col] > vector[row]:
-                        yield self.cols[col]
+        # vector = np.append(
+        #     vector,
+        #     (self.V_t_k.shape[1] - vector.shape[0]) * [0]
+        #     )
+        query = np.array([np.dot(self.S_k_inv, np.dot(self.V_t_k, vector))])
+        dist = scipy.spatial.distance.cdist(query, self.V_t_k.T, 'cosine')
+        cols = self.cols + (self.V_t_k.shape[1] - len(self.cols)) * ['']
+        return np.take(np.array(cols), np.where(dist >= proximity)[1]).tolist()
 
     def process(self, tup):
         try:
@@ -125,7 +117,7 @@ class RecommendationBolt(Bolt):
         # self.fold_in_user(vector)
 
         # TODO: Make proximity configurable.
-        recommendations = list(set(self.recommend(vector, proximity=1.1)))[:10]
+        recommendations = self.recommend(vector, proximity=1.2)[:10]
         events = list(set(events))[:100]
 
         emit([user, events, recommendations])
