@@ -71,8 +71,8 @@ def report(description, verbose):
 def main(base, proximity, rank, ratio, size, threshold, verbose):
     if verbose:
         print header('Report')
-    report('Supress floating-point error warnings.', verbose)
-    np.seterr(all='ignore')
+    else:
+        np.seterr(all='ignore')
 
     report('Configure mock recommendation bolt.', verbose)
     script_path = os.path.dirname(os.path.realpath(__file__))
