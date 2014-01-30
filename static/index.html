@@ -16,12 +16,18 @@
     .row {
       padding: 10px;
     }
-    .userID {
-      margin-top: 40px;
+    .userID, .status {
+      margin-left: 32px;
+      vertical-align: super;
       font-weight: bold;
     }
     .userID:before {
       content: "User ID ";
+    }
+    .status:before {
+      content: "Status ";
+    }
+    .userID:before, .status:before {
       font-weight: normal;
     }
     .recommended .header {
@@ -35,7 +41,8 @@
 <body>
   <div class="container">
     <h1>Zeit Recommend</h1>
-    <p class="pull-right userID">undefined</p>
+    <span class="userID">undefined</span>
+    <span class="status">undefined</span>
     <div id="main">
     </div>
   </div>
@@ -65,7 +72,7 @@
           return userID.replace(";", "").replace("|", "");
         }
       }
-      var userID = ("" + Math.random()).substring(2);
+      var userID = ("" + Math.random()).substring(8);
       document.cookie = "wt3_eid=" + userID;
       return userID;
     }
@@ -130,6 +137,7 @@
     function onopen (event) {
       var userID = getUserID()
       event.srcElement.send(userID);
+      document.content.querySelector(".status").textContent = "online";
     }
 
     function onmessage(event) {
@@ -138,14 +146,23 @@
       main.insertBefore(rowClone, main.firstChild);
     }
 
+    function onclose(event) {
+      document.querySelector(".status").textContent = "offline";
+    }
+
+    function onerror(event) {
+      document.querySelector(".status").textContent = "interrupted";
+    }
+
     window.onload = function() {
-      var ws = new WebSocket("ws://localhost:9000");
+      // TODO: Make host and port number configurable.
+      var ws = new WebSocket("ws://217.13.68.236:9000");
       ws.onmessage = onmessage;
       ws.onopen = onopen;
-      var userID = getUserID();
-      if (userID.length) {
-        document.querySelector(".userID").textContent = userID;
-      }
+      ws.onclose = onclose;
+      ws.onerror = onerror;
+      document.querySelector(".userID").textContent = getUserID();
+      document.querySelector(".status").textContent = "connecting";
     }
   </script>
 </body>
