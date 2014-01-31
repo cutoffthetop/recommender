@@ -53,7 +53,7 @@ class OutletBolt(Bolt):
             try:
                 data = urlopen(self.url, urlencode(params)).read()
                 yield json.loads(data)['response']['docs'][0]
-            except Exception, e:
+            except Exception:
                 yield dict(
                     title='zeit.de' + path,
                     teaser_text=('Lorem ipsum dolor sit amet, consetetur sadip'
