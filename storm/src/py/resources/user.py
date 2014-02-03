@@ -53,7 +53,7 @@ class UserIndexBolt(Bolt):
                         'name': 'rank',
                         'null_value': 0.1
                         },
-                    '_timestamp' : {
+                    '_timestamp': {
                         'enabled': True
                         }
                     }
