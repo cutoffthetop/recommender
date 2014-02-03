@@ -27,7 +27,7 @@ VERSION
 import sys
 import os
 import numpy as np
-from scipy.optimize import minimize, anneal
+from scipy.optimize import anneal
 
 
 def predict(params):
@@ -84,11 +84,10 @@ def predict(params):
 if __name__ == '__main__':
     print anneal(
         predict,
-        (350.0, 10.0, 100.0, 0.5, 0.25),
+        (500.0, 10.0, 100.0, 0.5, 0.25),
         full_output=1,
-        dwell=10,
+        dwell=25,
         disp=1,
-        Tf=1e-3,
-        lower=(300.0, 001.0, 005.0, 0.1, 0.05),
-        upper=(400.0, 100.0, 250.0, 0.9, 0.65)
+        lower=(100.0, 1.0, 5.0, 0.1, 0.05),
+        upper=(7500.0, 400.0, 500.0, 0.9, 0.65)
         )
