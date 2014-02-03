@@ -50,13 +50,13 @@ VERSION
     0.1
 """
 
+import datetime
 import numpy as np
 import optparse
 import os
 import sys
 import time
 import traceback
-import datetime
 
 
 def header(caption):
@@ -92,33 +92,38 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     report('Generate test users with a minimum observation count.', verbose)
     goal = dict(
         rb.generate_seed(from_=base, size=size, threshold=threshold)
-        )
+        ).items()
+
+    report('Expand goal and prediction dicts to matrices.', verbose)
+    goal_matrix = np.array(list(rb.expand(g[1]) for g in goal))
 
     report('Omit observations from user base according to ratio.', verbose)
-    test = goal.copy()
-    for user in test:
-        limit = int(len(test[user]) * ratio)
-        test[user] = list(test[user])[:-limit]
+    test = goal[:]
+    for i in range(len(test)):
+        test[i] = test[i][0], list(test[i][1])[:-int(len(test[i][1]) * ratio)]
+
+    report('Generate numerical predictions for each item-user pair.', verbose)
+    prediction_matrix = np.zeros_like(goal_matrix)
+    t0 = time.time()
+    for i in range(len(test)):
+        vector = rb.expand(test[i][1])
+        prediction_matrix[i, :] = rb.predict(vector, neighbors=10)
+    predicting = (time.time() - t0) / len(test)
+
+    report('Calculate mean absolute error.', verbose)
+    error_aggregate = 0.0
+    for i in range(goal_matrix.shape[0]):
+        for j in range(goal_matrix.shape[1]):
+            error_aggregate += abs(prediction_matrix[i, j] - goal_matrix[i, j])
+    mae = error_aggregate / np.multiply(*goal_matrix.shape)
 
     report('Generate recommendations for incomplete test dict.', verbose)
     prediction = dict()
     t0 = time.time()
-    for user, events in test.items():
-        vector = np.array(rb.expand({user: events}).next())
-        rb.fold_in_user(vector)
-        prediction[user] = list(rb.recommend(vector, proximity=proximity))
+    for user, paths in test:
+        vector = rb.expand(paths)
+        prediction[user] = rb.recommend(vector)
     recommending = (time.time() - t0) / len(test)
-
-    report('Expand goal and prediction dicts to matrices.', verbose)
-    goal_matrix = np.array(list(rb.expand(goal)))
-    prediction_matrix = np.array(list(rb.expand(prediction)))
-
-    report('Calculate mean absolute error.', verbose)
-    aggregate = 0.0
-    for i in range(goal_matrix.shape[0]):
-        for j in range(goal_matrix.shape[1]):
-            aggregate += abs(prediction_matrix[i, j] - goal_matrix[i, j])
-    mae = aggregate / np.multiply(*goal_matrix.shape)
 
     report('Calculate average recall, precisions and f1 metrics.', verbose)
     precision_aggregate = 0.0
@@ -127,8 +132,8 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     top_n_aggregate = 0.0
     len_goal = len(goal)
 
-    for user, events in goal.items():
-        hits = set(events).intersection(set(prediction[user]))
+    for user, paths in goal:
+        hits = set(paths).intersection(set(prediction[user]))
 
         recall = float(len(hits)) / len_goal
         recall_aggregate += recall
@@ -161,6 +166,7 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     print 'Threshold:\t', threshold
     print header('Averages')
     print 'Recommending:\t%.8fs' % recommending
+    print 'Predicting:\t%.8fs' % predicting
     print 'Initializing:\t%.8fs' % initializing
     print 'MAE:\t\t%.16f' % mae
     print 'Recall:\t\t%.16f' % recall
