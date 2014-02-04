@@ -8,8 +8,7 @@ SYNOPSIS
 
 DESCRIPTION
 
-    Optimize parameters of RecommendationBolt class within given bounds.
-    No parameters accepted.
+    Optimize parameters of RecommendationBolt class using annealing.
 
 AUTHOR
 
@@ -55,10 +54,6 @@ def predict(params):
         rb.generate_seed(from_=base, size=100, threshold=threshold)
         ).items()
 
-    if not len(goal):
-        print '\t'.join(['%.2f' % i for i in params.tolist()] + ['1.0'])
-        return 1.0
-
     goal_matrix = np.array(list(rb.expand(g[1]) for g in goal))
 
     test = goal[:]
@@ -81,13 +76,20 @@ def predict(params):
     return mae
 
 
+def tolerant_predict(params):
+    try:
+        return predict(params)
+    except:
+        print '\t'.join(['%.2f' % i for i in params.tolist()] + ['1.0'])
+        return 1.0
+
+
 if __name__ == '__main__':
     print anneal(
         predict,
         (500.0, 10.0, 100.0, 0.5, 0.25),
         full_output=1,
         dwell=25,
-        disp=1,
         lower=(100.0, 1.0, 5.0, 0.1, 0.05),
         upper=(7500.0, 400.0, 500.0, 0.9, 0.65)
         )
