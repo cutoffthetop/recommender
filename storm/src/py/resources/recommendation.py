@@ -114,10 +114,10 @@ class RecommendationBolt(Bolt):
         
         elif tup.stream == 'default':
             user, paths = tup.values
-
-            log('[RecommendationBolt] Incoming: %s' % user)
-
             if user in self.connections:
+
+                log('[RecommendationBolt] Incoming: %s' % user)
+
                 vector = self.expand(paths)
                 # self.fold_in_user(user, vector)
 
