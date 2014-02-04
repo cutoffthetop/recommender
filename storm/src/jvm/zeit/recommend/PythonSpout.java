@@ -30,7 +30,8 @@ public class PythonSpout extends ShellSpout implements IRichSpout {
 
   @Override
   public void declareOutputFields(OutputFieldsDeclarer declarer) {
-    declarer.declare(this.fields);
+    declarer.declareStream("default", this.fields);
+    declarer.declareStream("control", new Fields("action", "value"));
   }
 
   @Override

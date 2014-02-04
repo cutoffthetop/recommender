@@ -12,13 +12,18 @@
 
 from elasticsearch import Elasticsearch
 from storm import Bolt
+from storm import log
 from storm import emit
 import numpy as np
 import scipy.linalg
 import scipy.spatial
+import time
 
 
 class RecommendationBolt(Bolt):
+
+    connections = {}
+
     def initialize(self, conf, context):
         self.host = conf.get('zeit.recommend.elasticsearch.host', 'localhost')
         self.port = conf.get('zeit.recommend.elasticsearch.port', 9200)
@@ -66,6 +71,7 @@ class RecommendationBolt(Bolt):
             yield h['_id'], {e['path'] for e in h['_source']['events']}
 
     def expand(self, paths):
+        # TODO: AssertionError is caught nowhere!
         assert isinstance(paths, list) or isinstance(paths, set)
         for i in paths:
             assert isinstance(i, unicode)
@@ -99,14 +105,27 @@ class RecommendationBolt(Bolt):
         return np.take(np.array(self.cols), indicies)
 
     def process(self, tup):
-        user, paths = tup.values
-        vector = self.expand(paths)
-        # self.fold_in_user(user, vector)
+        if tup.stream == 'control':
+            action, user = tup.values
+            if action == 'connect':
+                self.connections[user] = int(time.time())
+            elif action == 'disconnect':
+                del self.connections[user]
+        
+        elif tup.stream == 'default':
+            user, paths = tup.values
 
-        recommendations = self.recommend(vector)[:10]
-        paths = list(set(paths))[:10]
+            log('[RecommendationBolt] Incoming: %s' % user)
 
-        emit([user, paths, recommendations])
+            if user in self.connections:
+                vector = self.expand(paths)
+                # self.fold_in_user(user, vector)
+
+                recommendations = self.recommend(vector).tolist()[:10]
+                paths = list(set(paths))[:10]
+
+                emit([user, paths, recommendations])
+
 
 if __name__ == '__main__':
     RecommendationBolt().run()

@@ -119,7 +119,7 @@ def __emit(*args, **kwargs):
         emitSpout(*args, **kwargs)
 
 
-def emitBolt(tup, stream=None, anchors=[], directTask=None):
+def emitBolt(tup, stream='default', anchors=[], directTask=None):
     global ANCHOR_TUPLE
     if ANCHOR_TUPLE is not None:
         anchors = [ANCHOR_TUPLE]
@@ -133,7 +133,7 @@ def emitBolt(tup, stream=None, anchors=[], directTask=None):
     sendMsgToParent(m)
 
 
-def emitSpout(tup, stream=None, id=None, directTask=None):
+def emitSpout(tup, stream='default', id=None, directTask=None):
     m = {'command': 'emit'}
     if id is not None:
         m['id'] = id

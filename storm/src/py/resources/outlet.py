@@ -11,6 +11,7 @@
 """
 
 from storm import Bolt
+from storm import emitBolt
 from storm import log
 from threading import Thread
 from urllib import urlencode
@@ -31,9 +32,10 @@ class OutletWebSocket(WebSocket):
     def received_message(self, message):
         uid = str(message)
         if len(uid) and _server:
-            log('[OutletWebSocket] Client connected: %s' % str(uid))
+            log('[OutletWebSocket] Client connected: %s' % uid)
             index = _server.manager.websockets.values().index(self)
             _clients[uid] = _server.manager.websockets.keys()[index]
+            emitBolt(['connect', uid], stream='control')
 
 
 class OutletBolt(Bolt):

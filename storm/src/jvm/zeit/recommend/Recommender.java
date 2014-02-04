@@ -26,7 +26,8 @@ public class Recommender {
      builder.setBolt(
         "item",
         new PythonBolt("item.py", "path"),
-        1).shuffleGrouping("zonapi");
+        1)
+        .shuffleGrouping("zonapi", "default");
 
     builder.setSpout(
         "rabbitmq",
@@ -36,17 +37,21 @@ public class Recommender {
     builder.setBolt(
         "user",
         new PythonBolt("user.py", "user", "paths"),
-        1).shuffleGrouping("rabbitmq");
+        1)
+        .shuffleGrouping("rabbitmq", "default");
 
     builder.setBolt(
         "recommendation",
         new PythonBolt("recommendation.py", "user", "events", "recommendations"),
-        1).shuffleGrouping("user");
+        1)
+        .shuffleGrouping("outlet", "control")
+        .shuffleGrouping("user", "default");
 
     builder.setBolt(
         "outlet",
         new PythonBolt("outlet.py"),
-        1).shuffleGrouping("recommendation");
+        1)
+        .shuffleGrouping("recommendation", "default");
 
     Config conf = new Config();
     conf.setDebug(false);
@@ -59,9 +64,9 @@ public class Recommender {
     conf.put("zeit.recommend.rabbitmq.host", "217.13.68.236");
     conf.put("zeit.recommend.rabbitmq.key", "logstash");
     conf.put("zeit.recommend.rabbitmq.port", 5672);
-    conf.put("zeit.recommend.rabbitmq.throughput", 0.1);
-    conf.put("zeit.recommend.svd.base", 3200);
-    conf.put("zeit.recommend.svd.rank", 200);
+    conf.put("zeit.recommend.rabbitmq.throughput", 0.5);
+    conf.put("zeit.recommend.svd.base", 2000);
+    conf.put("zeit.recommend.svd.rank", 100);
     conf.put("zeit.recommend.zonapi.host", "217.13.68.229");
     conf.put("zeit.recommend.zonapi.port", 8983);
     conf.put("zeit.recommend.runtime", 420);

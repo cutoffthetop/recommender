@@ -93,5 +93,6 @@ class ItemIndexBolt(Bolt):
             self.es.index(self.index, 'item', body)
             emit([path])
 
+
 if __name__ == '__main__':
     ItemIndexBolt().run()
