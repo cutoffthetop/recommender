@@ -32,9 +32,9 @@ class MorelikethisBolt(Bolt):
         raw = urllib2.urlopen(self.url + 'select?fl=body&wt=json&df=href&' + q)
         data = raw.read()
         response = json.loads(data)['response']
-        body = ' '.join([d['body'] for d in response['docs']]).encode('utf-8')
-
-        header = {'Content-Type': 'text/plain'}
+        bodies = [d['body'] for d in response['docs']]
+        body = ' '.join(bodies).encode('ascii', 'ignore')
+        header = {'Content-Type': 'text/plain; charset=utf-8'}
         req = urllib2.Request(self.url + 'mlt?fl=href', body, header)
         raw = urllib2.urlopen(req)
         data = raw.read()
