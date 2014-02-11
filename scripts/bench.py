@@ -74,19 +74,23 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     else:
         np.seterr(all='ignore')
 
-    report('Configure mock recommendation bolt.', verbose)
+    report('Configure mock recommendation and mlt bolts.', verbose)
     script_path = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(script_path + '/../storm/src/py/resources')
     from recommendation import RecommendationBolt
+    from morelikethis import MorelikethisBolt
 
     t0 = time.time()
-    rb = RecommendationBolt()
     conf = {
         'zeit.recommend.svd.base': base,
         'zeit.recommend.svd.rank': rank,
-        'zeit.recommend.elasticsearch.host': '217.13.68.236'
+        'zeit.recommend.elasticsearch.host': '217.13.68.236',
+        'zeit.recommend.zonapi.host': '217.13.68.229'
         }
+    rb = RecommendationBolt()
     rb.initialize(conf, None)
+    mb = MorelikethisBolt()
+    mb.initialize(conf, None)
     initializing = (time.time() - t0) / base
 
     report('Generate test users with a minimum observation count.', verbose)
@@ -100,30 +104,53 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     report('Omit observations from user base according to ratio.', verbose)
     test = goal[:]
     for i in range(len(test)):
-        test[i] = test[i][0], list(test[i][1])[:-int(len(test[i][1]) * ratio)]
+        try:
+            test[i] = test[i][0], list(test[i][1])[:-int(len(test[i][1]) * ratio)]
+        except Exception, e:
+            report(e.message, verbose)
 
     report('Generate numerical predictions for each item-user pair.', verbose)
     prediction_matrix = np.zeros_like(goal_matrix)
     t0 = time.time()
     for i in range(len(test)):
-        vector = rb.expand(test[i][1])
-        prediction_matrix[i, :] = rb.predict(vector, neighbors=10)
+        try:
+            vector = rb.expand(test[i][1])
+            prediction_matrix[i, :] = rb.predict(vector, neighbors=base / 10)
+        except Exception, e:
+            report(e.message, verbose)
     predicting = (time.time() - t0) / len(test)
 
     report('Calculate mean absolute error.', verbose)
     error_aggregate = 0.0
     for i in range(goal_matrix.shape[0]):
         for j in range(goal_matrix.shape[1]):
-            error_aggregate += abs(prediction_matrix[i, j] - goal_matrix[i, j])
+            try:
+                error_aggregate += abs(prediction_matrix[i, j] - goal_matrix[i, j])
+            except Exception, e:
+                report(e.message, verbose)
     mae = error_aggregate / np.multiply(*goal_matrix.shape)
 
     report('Generate recommendations for incomplete test dict.', verbose)
     prediction = dict()
     t0 = time.time()
     for user, paths in test:
-        vector = rb.expand(paths)
-        prediction[user] = rb.recommend(vector)
+        try:
+            vector = rb.expand(paths)
+            prediction[user] = rb.recommend(vector, proximity=proximity)
+        except Exception, e:
+            report(e.message, verbose)
     recommending = (time.time() - t0) / len(test)
+
+    report('Calculate cross-validation congruency.', verbose)
+    xval_aggregate = 0.0
+    t0 = time.time()
+    for i in range(len(test)):
+        try:
+            val = mb.recommend(test[i][1][:20], top_n=200)
+            xval_aggregate += len(goal[1][1].difference(paths).intersection(val))
+        except Exception, e:
+            report(e.message, verbose)
+    validating = (time.time() - t0) / len(test)
 
     report('Calculate average recall, precisions and f1 metrics.', verbose)
     precision_aggregate = 0.0
@@ -133,29 +160,33 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     len_goal = len(goal)
 
     for user, paths in goal:
-        hits = set(paths).intersection(set(prediction[user]))
+        try:
+            hits = set(paths).intersection(set(prediction[user]))
 
-        recall = float(len(hits)) / len_goal
-        recall_aggregate += recall
+            recall = float(len(hits)) / len_goal
+            recall_aggregate += recall
 
-        if len(prediction[user]):
-            precision = float(len(hits)) / len(prediction[user])
-        else:
-            precision = 0.0
-        precision_aggregate += precision
+            if len(prediction[user]):
+                precision = float(len(hits)) / len(prediction[user])
+            else:
+                precision = 0.0
+            precision_aggregate += precision
 
-        if (recall + precision):
-            f1 = float(2 * recall * precision) / (recall + precision)
-        else:
-            f1 = 0.0
-        f1_aggregate += f1
+            if (recall + precision):
+                f1 = float(2 * recall * precision) / (recall + precision)
+            else:
+                f1 = 0.0
+            f1_aggregate += f1
 
-        top_n_aggregate += len(prediction[user])
+            top_n_aggregate += len(prediction[user])
+        except Exception, e:
+            report(e.message, verbose)
 
     recall = recall_aggregate / len_goal
     precision = precision_aggregate / len_goal
     f1 = f1_aggregate / len_goal
     top_n = top_n_aggregate / len_goal
+    xval = xval_aggregate / len_goal
 
     print header('Options')
     print 'Base:\t\t', base
@@ -169,6 +200,7 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     print 'Predicting:\t%.8fs' % predicting
     print 'Initializing:\t%.8fs' % initializing
     print 'MAE:\t\t%.16f' % mae
+    print 'X-Val:\t\t%.16f' % xval
     print 'Recall:\t\t%.16f' % recall
     print 'Precision:\t%.16f' % precision
     print 'F1 Score:\t%.16f' % f1
