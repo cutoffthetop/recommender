@@ -72,10 +72,8 @@ class OutletBolt(Bolt):
             requested=list(self.resolve_paths(requested))
             )
 
-        # TODO: Disable broadcasting and whitelist user IDs.
-        # if user in _clients:
-        #     ws = _server.manager.websockets[_clients[user]]
-        for ws in _server.manager.websockets.values():
+        if user in _clients:
+            ws = _server.manager.websockets[_clients[user]]
             ws.send(json.dumps(message))
 
 
