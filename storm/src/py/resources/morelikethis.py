@@ -27,7 +27,7 @@ class MorelikethisBolt(Bolt):
         port = conf.get('zeit.recommend.zonapi.port', 8983)
         self.url = 'http://%s:%s/solr/' % (host, port)
 
-    def recommend(self, paths):
+    def recommend(self, paths, top_n=10):
         q = 'q=' + '%20'.join(['*' + p for p in paths])
         raw = urllib2.urlopen(self.url + 'select?fl=body&wt=json&df=href&' + q)
         data = raw.read()
@@ -35,7 +35,8 @@ class MorelikethisBolt(Bolt):
         bodies = [d['body'] for d in response['docs']]
         body = ' '.join(bodies).encode('ascii', 'ignore')
         header = {'Content-Type': 'text/plain; charset=utf-8'}
-        req = urllib2.Request(self.url + 'mlt?fl=href', body, header)
+        url = '%smlt?fl=href&rows=%s' % (self.url, top_n)
+        req = urllib2.Request(url, body, header)
         raw = urllib2.urlopen(req)
         data = raw.read()
         response = json.loads(data)['response']
