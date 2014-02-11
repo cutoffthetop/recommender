@@ -111,7 +111,7 @@ class RecommendationBolt(Bolt):
                 self.connections[user] = int(time.time())
             elif action == 'disconnect':
                 del self.connections[user]
-        
+
         elif tup.stream == 'default':
             user, paths = tup.values
             if user in self.connections:
