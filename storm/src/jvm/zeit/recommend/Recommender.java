@@ -48,6 +48,13 @@ public class Recommender {
         .shuffleGrouping("user", "default");
 
     builder.setBolt(
+        "morelikethis",
+        new PythonBolt("morelikethis.py", "user", "events", "recommendations"),
+        1)
+        .shuffleGrouping("outlet", "control")
+        .shuffleGrouping("user", "default");
+
+    builder.setBolt(
         "outlet",
         new PythonBolt("outlet.py"),
         1)
