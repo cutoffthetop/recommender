@@ -10,12 +10,12 @@
     License: BSD, see LICENSE for more details.
 """
 
-from elasticsearch import Elasticsearch
 from storm import Bolt
 from storm import log
 from storm import emit
 import urllib2
 import time
+import json
 
 
 class MorelikethisBolt(Bolt):
@@ -25,16 +25,17 @@ class MorelikethisBolt(Bolt):
     def initialize(self, conf, context):
         host = conf.get('zeit.recommend.zonapi.host', 'localhost')
         port = conf.get('zeit.recommend.zonapi.port', 8983)
-        self.url = 'http://%s:%s/solr/mlt?fl=href' % (host, port)
+        self.url = 'http://%s:%s/solr/' % (host, port)
 
     def recommend(self, paths):
-        aggregate = []
-        for path in paths:
-            # TODO: Retrieve article bodies here.
-            aggregate.append('')
+        q = 'q=' + '%20'.join(['*' + p for p in paths])
+        raw = urllib2.urlopen(self.url + 'select?fl=body&wt=json&df=href&' + q)
+        data = raw.read()
+        response = json.loads(data)['response']
+        body = ' '.join([d['body'] for d in response['docs']]).encode('utf-8')
 
-        body = ' '.join(aggregate)
-        req = urllib2.Request(url, body, {'Content-Type':'text/plain'})
+        header = {'Content-Type': 'text/plain'}
+        req = urllib2.Request(self.url + 'mlt?fl=href', body, header)
         raw = urllib2.urlopen(req)
         data = raw.read()
         response = json.loads(data)['response']
@@ -47,7 +48,7 @@ class MorelikethisBolt(Bolt):
                 self.connections[user] = int(time.time())
             elif action == 'disconnect':
                 del self.connections[user]
-        
+
         elif tup.stream == 'default':
             user, paths = tup.values
             if user in self.connections:
