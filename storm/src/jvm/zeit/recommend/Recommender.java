@@ -58,6 +58,7 @@ public class Recommender {
         "outlet",
         new PythonBolt("outlet.py"),
         1)
+        .shuffleGrouping("morelikethis", "default")
         .shuffleGrouping("recommendation", "default");
 
     Config conf = new Config();
