@@ -72,19 +72,12 @@ def predict(params):
             error_aggregate += abs(prediction_matrix[i, j] - goal_matrix[i, j])
     
     mae = error_aggregate / np.multiply(*goal_matrix.shape)
-    print '\t'.join(['%.2f' % i for i in params.tolist()] + [str(mae)])
+    print '\t'.join(['%.2f' % i for i in params.tolist() + [mae]])
     return mae
 
 
-def tolerant_predict(params):
-    try:
-        return predict(params)
-    except:
-        print '\t'.join(['%.2f' % i for i in params.tolist()] + ['1.0'])
-        return 1.0
-
-
 if __name__ == '__main__':
+    print '\t'.join(['base', 'neighbors', 'rank', 'ratio', 'threshold', 'mae'])
     print anneal(
         predict,
         (500.0, 10.0, 100.0, 0.5, 0.25),
