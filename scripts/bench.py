@@ -188,23 +188,33 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     top_n = top_n_aggregate / len_goal
     xval = xval_aggregate / len_goal
 
+    options = (
+        'Base:\t\t%s' % base,
+        'Proximity:\t%s' % proximity,
+        'Rank:\t\t%s' % rank,
+        'Ratio:\t\t%s' % ratio,
+        'Size:\t\t%s' % len_goal,
+        'Threshold:\t%s' % threshold
+        )
+
+    averages = (
+        'Recommending:\t%.8fs' % recommending,
+        'Predicting:\t%.8fs' % predicting,
+        'Initializing:\t%.8fs' % initializing,
+        'Validating:\t%.8fs' % validating,
+        'MAE:\t\t%.16f' % mae,
+        'X-Val:\t\t%.16f' % xval,
+        'Recall:\t\t%.16f' % recall,
+        'Precision:\t%.16f' % precision,
+        'F1 Score:\t%.16f' % f1,
+        'Top N:\t\t%.16f' % top_n
+        )
+
     print header('Options')
-    print 'Base:\t\t', base
-    print 'Proximity:\t', proximity
-    print 'Rank:\t\t', rank
-    print 'Ratio:\t\t', ratio
-    print 'Size:\t\t', len_goal
-    print 'Threshold:\t', threshold
+    print options
     print header('Averages')
-    print 'Recommending:\t%.8fs' % recommending
-    print 'Predicting:\t%.8fs' % predicting
-    print 'Initializing:\t%.8fs' % initializing
-    print 'MAE:\t\t%.16f' % mae
-    print 'X-Val:\t\t%.16f' % xval
-    print 'Recall:\t\t%.16f' % recall
-    print 'Precision:\t%.16f' % precision
-    print 'F1 Score:\t%.16f' % f1
-    print 'Top N:\t\t%.16f' % top_n
+    print averages
+
 
 if __name__ == '__main__':
     try:
