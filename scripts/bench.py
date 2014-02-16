@@ -26,8 +26,8 @@ DESCRIPTION
         Configure the rank of the matrix approximation. Defaults to 100.
 
     -r float, --ratio float
-        Configure the how many percent of the testing data to use for
-        verification. Defaults to 0.5.
+        Configure how many percent of the testing data to use for verification.
+        Defaults to 0.5.
 
     -s int, --size int
         Configure how many users to generate recommendations for. The actual
@@ -211,9 +211,9 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
         )
 
     print header('Options')
-    print options
+    print '\n'.join(options)
     print header('Averages')
-    print averages
+    print '\n'.join(averages)
 
 
 if __name__ == '__main__':
