@@ -72,12 +72,13 @@ def predict(params):
             error_aggregate += abs(prediction_matrix[i, j] - goal_matrix[i, j])
     
     mae = error_aggregate / np.multiply(*goal_matrix.shape)
-    print '\t'.join(['%.2f' % i for i in params.tolist() + [mae]])
+    output = [len(goal), neighbors, rank, ratio, threshold, mae]
+    print '\t'.join(['%.4f' % i for i in output])
     return mae
 
 
 if __name__ == '__main__':
-    print '\t'.join(['base', 'neighbors', 'rank', 'ratio', 'threshold', 'mae'])
+    print '\t'.join(['base', 'nbrs', 'rank', 'ratio', 'thld', 'mae'])
     print anneal(
         predict,
         (500.0, 10.0, 100.0, 0.5, 0.25),
