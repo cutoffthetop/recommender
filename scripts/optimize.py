@@ -10,6 +10,12 @@ DESCRIPTION
 
     Optimize parameters of RecommendationBolt class using annealing.
 
+    -f, --force
+        Use brute force algorithm instead of annealing.
+
+    -t, --tolerant
+        Tolerate runtime errors in optimization function.
+
 AUTHOR
 
     Nicolas Drebenstedt <nicolas.drebenstedt@zeit.de>
@@ -25,6 +31,7 @@ VERSION
 
 import itertools
 import multiprocessing
+import optparse
 import os
 import sys
 import traceback
@@ -89,24 +96,45 @@ def tolerant_predict(params):
         return traceback.format_exc()
 
 
-def brute_optimize(func, lower=(), upper=(), steps=2, **kwargs):
+def brute_optimize(func, steps=10, **kwargs):
     pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-    bounds = zip(lower, upper)
+    bounds = zip(kwargs['lower'], kwargs['upper'])
     opt = [(range(l, u, (u - l) / steps)[:steps - 1] + [u]) for l, u in bounds]
     return pool.map(func, list(itertools.product(*opt)))
 
 
-def anneal_optimize(*args, **kwargs):
-    kwargs.setdefault('full_output', 1)
-    kwargs.setdefault('dwell', 25)
-    args.append((500, 10, 100, 50, 25))
-    return anneal(*args, **kwargs)
+def anneal_optimize(func, x0=(500, 10, 100, 50, 25), **kwargs):
+    return anneal(func, x0, **kwargs)
 
 
 if __name__ == '__main__':
-    kwargs = dict(
+    print '\t'.join(['base', '\tnbrs', 'rank', 'ratio', 'thld', 'mae'])
+
+    parser = optparse.OptionParser(
+        formatter=optparse.TitledHelpFormatter(),
+        usage=globals()['__doc__'],
+        version='0.1'
+        )
+    parser.add_option(
+        '-f',
+        '--force',
+        action='store_true',
+        help='brute force algorithm'
+        )
+    parser.add_option(
+        '-t',
+        '--tolerant',
+        action='store_true',
+        help='tolerate runtime errors'
+        )
+    (options, args) = parser.parse_args()
+
+    gf = globals().get
+    algo = gf('%s_optimize' % ('brute' if options.force else 'anneal'))
+    func = gf('%spredict' % ('tolerant_' if options.tolerant else ''))
+
+    print algo(
+        func,
         lower=(100, 1, 5, 10, 5),
         upper=(7500, 400, 500, 90, 65)
         )
-    print '\t'.join(['base', '\tnbrs', 'rank', 'ratio', 'thld', 'mae'])
-    print brute_optimize(tolerant_predict, **kwargs)
