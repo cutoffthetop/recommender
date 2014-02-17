@@ -23,20 +23,25 @@ VERSION
     0.1
 """
 
-import sys
+import itertools
+import multiprocessing
 import os
+import sys
+import traceback
+
 import numpy as np
 from scipy.optimize import anneal
 
 
 def predict(params):
-    base, neighbors, rank, ratio, threshold = params.tolist()
+    params = getattr(params, 'tolist', lambda: params)()
+    base, neighbors, rank, ratio, threshold = params
 
     base = abs(int(base))
     neighbors = abs(int(neighbors))
     rank = abs(min(int(rank), base))
-    ratio = abs(float(ratio))
-    threshold = abs(float(threshold))
+    ratio = abs(float(ratio) / 100)
+    threshold = abs(float(threshold) / 100)
 
     script_path = os.path.dirname(os.path.realpath(__file__))
     sys.path.append(script_path + '/../storm/src/py/resources')
@@ -49,7 +54,7 @@ def predict(params):
         'zeit.recommend.elasticsearch.host': '217.13.68.236'
         }
     rb.initialize(conf, None)
-    
+
     goal = dict(
         rb.generate_seed(from_=base, size=100, threshold=threshold)
         ).items()
@@ -65,25 +70,43 @@ def predict(params):
     for i in range(len(test)):
         vector = rb.expand(test[i][1])
         prediction_matrix[i, :] = rb.predict(vector, neighbors=neighbors)
-
+    assert False
     error_aggregate = 0.0
     for i in range(goal_matrix.shape[0]):
         for j in range(goal_matrix.shape[1]):
             error_aggregate += abs(prediction_matrix[i, j] - goal_matrix[i, j])
-    
+
     mae = error_aggregate / np.multiply(*goal_matrix.shape)
     output = [len(goal), neighbors, rank, ratio, threshold, mae]
     print '\t'.join(['%.4f' % i for i in output])
     return mae
 
 
+def tolerant_predict(params):
+    try:
+        return predict(params)
+    except:
+        return traceback.format_exc()
+
+
+def brute_optimize(func, lower=(), upper=(), steps=2, **kwargs):
+    pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+    bounds = zip(lower, upper)
+    opt = [(range(l, u, (u - l) / steps)[:steps - 1] + [u]) for l, u in bounds]
+    return pool.map(func, list(itertools.product(*opt)))
+
+
+def anneal_optimize(*args, **kwargs):
+    kwargs.setdefault('full_output', 1)
+    kwargs.setdefault('dwell', 25)
+    args.append((500, 10, 100, 50, 25))
+    return anneal(*args, **kwargs)
+
+
 if __name__ == '__main__':
-    print '\t'.join(['base', 'nbrs', 'rank', 'ratio', 'thld', 'mae'])
-    print anneal(
-        predict,
-        (500.0, 10.0, 100.0, 0.5, 0.25),
-        full_output=1,
-        dwell=25,
-        lower=(100.0, 1.0, 5.0, 0.1, 0.05),
-        upper=(7500.0, 400.0, 500.0, 0.9, 0.65)
+    kwargs = dict(
+        lower=(100, 1, 5, 10, 5),
+        upper=(7500, 400, 500, 90, 65)
         )
+    print '\t'.join(['base', '\tnbrs', 'rank', 'ratio', 'thld', 'mae'])
+    print brute_optimize(tolerant_predict, **kwargs)
