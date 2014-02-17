@@ -34,7 +34,6 @@ import multiprocessing
 import optparse
 import os
 import sys
-import traceback
 
 import numpy as np
 from scipy.optimize import anneal
@@ -77,7 +76,7 @@ def predict(params):
     for i in range(len(test)):
         vector = rb.expand(test[i][1])
         prediction_matrix[i, :] = rb.predict(vector, neighbors=neighbors)
-    assert False
+
     error_aggregate = 0.0
     for i in range(goal_matrix.shape[0]):
         for j in range(goal_matrix.shape[1]):
@@ -92,8 +91,8 @@ def predict(params):
 def tolerant_predict(params):
     try:
         return predict(params)
-    except:
-        return traceback.format_exc()
+    except Exception, e:
+        return '\t'.join(['%.4f' % i for i in params] + [e.message])
 
 
 def brute_optimize(func, steps=10, **kwargs):
@@ -108,7 +107,7 @@ def anneal_optimize(func, x0=(500, 10, 100, 50, 25), **kwargs):
 
 
 if __name__ == '__main__':
-    print '\t'.join(['base', '\tnbrs', 'rank', 'ratio', 'thld', 'mae'])
+    print '\t'.join(['base', 'neighbors', 'rank', 'ratio', 'threshold', 'mae'])
 
     parser = optparse.OptionParser(
         formatter=optparse.TitledHelpFormatter(),
