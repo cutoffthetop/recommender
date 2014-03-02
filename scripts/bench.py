@@ -147,6 +147,7 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     for i in range(len(test)):
         try:
             val = mb.recommend(test[i][1][:20], top_n=200)
+            # Variable 'paths' is not defined!
             xval_aggregate += len(goal[1][1].difference(paths).intersection(val))
         except Exception, e:
             report(e.message, verbose)

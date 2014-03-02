@@ -29,96 +29,81 @@ VERSION
     0.1
 """
 
+import copy
 import itertools
 import multiprocessing
+import numpy as np
 import optparse
 import os
 import sys
 
-import numpy as np
-from scipy.optimize import anneal
+global MB, RB
 
 
 def predict(params):
-    params = getattr(params, 'tolist', lambda: params)()
-    base, neighbors, rank, ratio, threshold = params
+    neighbors, rank = getattr(params, 'tolist', lambda: params)()
 
-    base = abs(int(base))
-    neighbors = abs(int(neighbors))
-    rank = abs(min(int(rank), base))
-    ratio = abs(float(ratio) / 100)
-    threshold = abs(float(threshold) / 100)
+    rb = copy.deepcopy(RB)
+    mb = copy.deepcopy(MB)
 
-    script_path = os.path.dirname(os.path.realpath(__file__))
-    sys.path.append(script_path + '/../storm/src/py/resources')
-    from recommendation import RecommendationBolt
-
-    rb = RecommendationBolt()
-    conf = {
-        'zeit.recommend.svd.base': base,
-        'zeit.recommend.svd.rank': rank,
-        'zeit.recommend.elasticsearch.host': '217.13.68.236'
-        }
-    rb.initialize(conf, None)
+    rb.U_k = rb.U[:, :rank]
+    rb.S_k = np.diagflat(rb.S)[:rank, :rank]
+    rb.V_t_k = rb.V_t[:rank, :]
 
     goal = dict(
-        rb.generate_seed(from_=base, size=100, threshold=threshold)
+        rb.generate_seed(from_=10000, size=500, threshold=0.5)
         ).items()
 
     goal_matrix = np.array(list(rb.expand(g[1]) for g in goal))
 
     test = goal[:]
     for i in range(len(test)):
-        test[i] = test[i][0], list(test[i][1])[:-int(len(test[i][1]) * ratio)]
+        test[i] = test[i][0], list(test[i][1])[:-int(len(test[i][1]) * 0.5)]
 
+    mae_aggr = 0.0
     prediction_matrix = np.zeros_like(goal_matrix)
-
     for i in range(len(test)):
         vector = rb.expand(test[i][1])
         prediction_matrix[i, :] = rb.predict(vector, neighbors=neighbors)
-
-    error_aggregate = 0.0
     for i in range(goal_matrix.shape[0]):
         for j in range(goal_matrix.shape[1]):
-            error_aggregate += abs(prediction_matrix[i, j] - goal_matrix[i, j])
+            mae_aggr += abs(prediction_matrix[i, j] - goal_matrix[i, j])
+    mae = mae_aggr / np.multiply(*goal_matrix.shape)
 
-    mae = error_aggregate / np.multiply(*goal_matrix.shape)
-    output = [len(goal), neighbors, rank, ratio, threshold, mae]
-    print '\t'.join(['%.4f' % i for i in output])
-    return mae
+    xval_aggr = 1.0
+    for i in range(len(test)):
+        val = mb.recommend(test[i][1], top_n=100)
+        diff = goal[i][1].difference(test[i][1])
+        xval_aggr += len(diff.intersection(val))
+    xval = xval_aggr / float(len(test))
+
+    f1_aggr = 0.0
+    for user, paths in test:
+        vector = rb.expand(paths)
+        docs = rb.recommend(vector, proximity=0.5, neighbors=neighbors)
+        intersection = float(len(set(rb.cols).intersection(docs)))
+        f1_aggr += intersection / (len(rb.cols) + len(docs))
+    f1 = f1_aggr / float(len(test))
+
+    line = ['%.9f' % i for i in (neighbors, rank, mae, xval, f1)]
+    open('/tmp/opt.csv', 'a').write('\n' + '\t'.join(line))
 
 
 def tolerant_predict(params):
     try:
         return predict(params)
     except Exception, e:
-        return '\t'.join(['%.4f' % i for i in params] + [e.message])
-
-
-def brute_optimize(func, steps=10, **kwargs):
-    pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-    bounds = zip(kwargs['lower'], kwargs['upper'])
-    opt = [(range(l, u, (u - l) / steps)[:steps - 1] + [u]) for l, u in bounds]
-    return pool.map(func, list(itertools.product(*opt)))
-
-
-def anneal_optimize(func, x0=(500, 10, 100, 50, 25), **kwargs):
-    return anneal(func, x0, **kwargs)
+        line = '\n' + '\t'.join(['%.9f' % i for i in params] + [e.message])
+        open('/tmp/opt.csv', 'a').write(line)
 
 
 if __name__ == '__main__':
-    print '\t'.join(['base', 'neighbors', 'rank', 'ratio', 'threshold', 'mae'])
+    global MB, RB
 
     parser = optparse.OptionParser(
         formatter=optparse.TitledHelpFormatter(),
         usage=globals()['__doc__'],
         version='0.1'
-        )
-    parser.add_option(
-        '-f',
-        '--force',
-        action='store_true',
-        help='brute force algorithm'
         )
     parser.add_option(
         '-t',
@@ -128,12 +113,27 @@ if __name__ == '__main__':
         )
     (options, args) = parser.parse_args()
 
-    gf = globals().get
-    algo = gf('%s_optimize' % ('brute' if options.force else 'anneal'))
-    func = gf('%spredict' % ('tolerant_' if options.tolerant else ''))
+    script_path = os.path.dirname(os.path.realpath(__file__))
+    sys.path.append(script_path + '/../storm/src/py/resources')
+    from recommendation import RecommendationBolt
+    from morelikethis import MorelikethisBolt
 
-    print algo(
-        func,
-        lower=(100, 1, 5, 10, 5),
-        upper=(7500, 400, 500, 90, 65)
-        )
+    conf = {
+        'zeit.recommend.svd.base': 100,
+        'zeit.recommend.svd.rank': 10,
+        'zeit.recommend.elasticsearch.host': 'localhost',
+        'zeit.recommend.zonapi.host': '217.13.68.229'
+        }
+    RB = RecommendationBolt()
+    RB.initialize(conf, None)
+    MB = MorelikethisBolt()
+    MB.initialize(conf, None)
+
+    line = '\t'.join(['base', 'ngbs', 'rank', 'mae', 'xval', 'f1'])
+    open('/tmp/opt.csv', 'a').write(line)
+
+    prefix = 'tolerant_' if options.tolerant else ''
+    func = globals().get('%spredict' % prefix)
+    steps = [10, 59, 108, 157, 206, 255, 304, 353, 402, 451, 500]
+    pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
+    pool.map(func, list(itertools.product(steps[:], steps[:])))
