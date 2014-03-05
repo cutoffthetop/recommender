@@ -18,6 +18,8 @@ from elasticsearch.exceptions import ConnectionError
 from storm import Bolt
 from storm import emit
 from storm import log
+from storm import ack
+from storm import fail
 from urllib import urlencode
 from urllib import urlopen
 import json
@@ -92,8 +94,13 @@ class ItemIndexBolt(Bolt):
                 teaser=doc['teaser_text'],
                 timestamp=int(time.strftime("%s000"))
                 )
-            self.es.index(self.index, 'item', body)
-            emit([path])
+            status = self.es.index(self.index, 'item', body)
+            log(str(status))
+            if status.get('ok', False):
+                emit([path])
+                ack(tup)
+                return
+        fail(tup)
 
 
 if __name__ == '__main__':
