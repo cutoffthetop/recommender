@@ -76,31 +76,29 @@ class ItemIndexBolt(Bolt):
             )
         raw = urlopen(self.url, urlencode(params))
         data = raw.read()
-        docs = json.loads(data)['response']['docs']
-        return None if not len(docs) else docs[0]
+        doc = json.loads(data)['response']['docs'][0]
+        args = doc['release_date'], '%Y-%m-%dT%H:%M:%SZ'
+        ts = int(datetime.strptime(*args).strftime('%s000'))
+        return dict(
+            path=path,
+            title=doc.get('title'),
+            body=doc.get('body'),
+            teaser=doc.get('teaser_text'),
+            timestamp=ts
+            )
 
     def process(self, tup):
         path = tup.values[0].rstrip('/')
         if self.match(path):
             path = path.rsplit('/', 1)[0]
 
-        doc = self.get_doc(path)
-        if doc:
-            time = datetime.strptime(doc['release_date'], '%Y-%m-%dT%H:%M:%SZ')
-            body = dict(
-                path=path,
-                title=doc['title'],
-                body=doc['body'],
-                teaser=doc['teaser_text'],
-                timestamp=int(time.strftime("%s000"))
-                )
-            status = self.es.index(self.index, 'item', body)
-            log(str(status))
-            if status.get('ok', False):
+        try:
+            doc = self.get_doc(path)
+            if self.es.index(self.index, 'item', doc).get('ok', False):
                 emit([path])
                 ack(tup)
-                return
-        fail(tup)
+        except:
+            fail(tup)
 
 
 if __name__ == '__main__':
