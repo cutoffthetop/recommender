@@ -52,6 +52,7 @@ class ItemIndexBolt(Bolt):
                             'index': 'not_analyzed'
                             },
                         'title': {'type': 'string'},
+                        'body': {'type': 'string'},
                         'teaser': {'type': 'string'},
                         'timestamp': {'type': 'date'}
                         },
@@ -69,7 +70,7 @@ class ItemIndexBolt(Bolt):
         params = dict(
             wt='json',
             q='href:*%s' % path,
-            fl='title,teaser_text,release_date'
+            fl='title,teaser_text,release_date,body'
             )
         raw = urlopen(self.url, urlencode(params))
         data = raw.read()
@@ -87,6 +88,7 @@ class ItemIndexBolt(Bolt):
             body = dict(
                 path=path,
                 title=doc['title'],
+                body=doc['body'],
                 teaser=doc['teaser_text'],
                 timestamp=int(time.strftime("%s000"))
                 )
