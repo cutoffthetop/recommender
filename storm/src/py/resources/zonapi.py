@@ -60,7 +60,7 @@ class ZonAPISpout(Spout):
         else:
             params['q'] = '*:*'
             params['start'] = self.start
-            params['sort'] = 'release_date asc'
+            params['sort'] = 'release_date desc'
             self.start += 1
             raw = urlopen(self.url, urlencode(params))
             docs = json.loads(raw.read())['response']['docs']
