@@ -25,7 +25,8 @@ class ZonAPISpout(Spout):
         host = conf.get('zeit.recommend.zonapi.host', 'localhost')
         port = conf.get('zeit.recommend.zonapi.port', 8983)
         self.url = 'http://%s:%s/solr/select' % (host, port)
-        self.time_range = [datetime.now()] * 2
+        self.newest = datetime.now()
+        self.start = 0
         self.buffer = {}
 
     def ack(self, cnt_id):
@@ -43,30 +44,34 @@ class ZonAPISpout(Spout):
             emit(tup, id=cnt_id)
 
     def get_docs(self):
-        upper = '%s:00Z TO NOW' % self.time_range[1].isoformat()[:-3]
-        lower = 'NOW-1YEAR TO %s:00Z' % self.time_range[0].isoformat()[:-3]
+        date_range = '%s:00Z TO NOW' % self.newest.isoformat()[:-3]
         params = dict(
             wt='json',
-            q='release_date:[%s] OR release_date:[%s]' % (lower, upper),
+            q='release_date:[%s]' % date_range,
             fl='uuid,href,release_date,title',
-            sort='release_date desc',
+            sort='release_date asc',
             rows='1'
             )
         raw = urlopen(self.url, urlencode(params))
-        data = raw.read()
-        return json.loads(data)['response']['docs']
+        docs = json.loads(raw.read())['response']['docs']
+        if docs:
+            args = docs[0]['release_date'], '%Y-%m-%dT%H:%M:%SZ'
+            self.newest = datetime.strptime(*args)
+        else:
+            params['q'] = '*:*'
+            params['start'] = self.start
+            params['sort'] = 'release_date asc'
+            self.start += 1
+            raw = urlopen(self.url, urlencode(params))
+            docs = json.loads(raw.read())['response']['docs']
+        return docs
 
     def nextTuple(self):
         docs = self.get_docs()
-        if docs:
-            args = docs[0]['release_date'], '%Y-%m-%dT%H:%M:%SZ'
-            doc_time = datetime.strptime(*args)
-            self.time_range[int(doc_time > self.time_range[1])] = doc_time
-            uuid = docs[0]['uuid']
-            tup = [docs[0]['href'][18:]]
-            self.buffer[uuid] = (tup, 0)
-            emit(tup, id=uuid)
-
+        uuid = docs[0]['uuid']
+        tup = [docs[0]['href'][18:]]
+        self.buffer[uuid] = (tup, 0)
+        emit(tup, id=uuid)
         sleep(1.0)
 
 if __name__ == '__main__':
