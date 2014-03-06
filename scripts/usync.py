@@ -11,7 +11,8 @@ from time import sleep
 from elasticsearch.client import IndicesClient
 from elasticsearch import Elasticsearch
 
-es = Elasticsearch()
+dest = Elasticsearch(hosts=[{'host': 'localhost', 'port': 9200}])
+src = Elasticsearch(hosts=[{'host': '217.13.68.236', 'port': 9200}])
 index = '%s-%s' % date.today().isocalendar()[:2]
 start = 0
 
@@ -19,24 +20,24 @@ start = 0
 def main():
     global start
 
-    src = Elasticsearch(hosts=[{'host': '217.13.68.236', 'port': 9200}])
-
     hits = src.search(
         from_=start,
         size=1,
         doc_type='user'
         )
 
+    start += 1
+
     user = hits['hits']['hits'][0]
 
-    status = es.index(
+    status = dest.index(
         index=index,
         doc_type='user',
         id=user['_id'],
         body=user['_source'],
         )
 
-    print user['_id'], status.get('ok', False)
+    print user['_id'], status.get('created', False)
 
 
 if __name__ == '__main__':
@@ -56,7 +57,7 @@ if __name__ == '__main__':
             }
         }
 
-    ic = IndicesClient(es)
+    ic = IndicesClient(dest)
 
     if not ic.exists(index):
         ic.create(index)

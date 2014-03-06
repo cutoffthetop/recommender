@@ -16,54 +16,45 @@ import re
 from elasticsearch.client import IndicesClient
 from elasticsearch import Elasticsearch
 
-es = Elasticsearch()
+es = Elasticsearch(hosts=[{'host': 'localhost', 'port': 9200}])
+url = 'http://217.13.68.229:8983/solr/select'
 index = '%s-%s' % date.today().isocalendar()[:2]
 match = re.compile('seite-[0-9]|komplettansicht').match
-newest = datetime.now()
 start = 0
 
 
 def main():
     global newest, start
-    url = 'http://217.13.68.229:8983/solr/select'
 
-    date_range = '%s:00Z TO NOW' % newest.isoformat()[:-3]
     params = dict(
         wt='json',
-        q='release_date:[%s]' % date_range,
+        q='*:*',
         fl='href,release_date,title,body,teaser_text',
-        sort='release_date asc',
-        rows='1'
+        sort='release_date desc',
+        rows='1',
+        start=start
         )
+
+    start += 1
     raw = urlopen(url, urlencode(params))
-    docs = json.loads(raw.read())['response']['docs']
+    doc = json.loads(raw.read())['response']['docs'][0]
 
-    if docs:
-        args = docs[0]['release_date'], '%Y-%m-%dT%H:%M:%SZ'
-        newest = datetime.strptime(*args)
-    else:
-        params['q'] = '*:*'
-        params['start'] = start
-        params['sort'] = 'release_date desc'
-        start += 1
-        raw = urlopen(url, urlencode(params))
-        docs = json.loads(raw.read())['response']['docs']
-
-    args = docs[0]['release_date'], '%Y-%m-%dT%H:%M:%SZ'
+    args = doc['release_date'], '%Y-%m-%dT%H:%M:%SZ'
     ts = int(datetime.strptime(*args).strftime('%s000'))
-    path = docs[0]['href'][18:].rstrip('/')
+
+    path = doc['href'][18:].rstrip('/')
     if match(path):
         path = path.rsplit('/', 1)[0]
 
     item = dict(
         path=path,
-        title=docs[0].get('title'),
-        body=docs[0].get('body'),
-        teaser=docs[0].get('teaser_text'),
+        title=doc.get('title'),
+        body=doc.get('body'),
+        teaser=doc.get('teaser_text'),
         timestamp=ts
         )
 
-    print path, es.index(index, 'item', item).get('ok', False)
+    print path, es.index(index, 'item', item).get('created', False)
 
 
 if __name__ == '__main__':
