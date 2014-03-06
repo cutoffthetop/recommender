@@ -2,11 +2,12 @@
 
 This guide describes how to setup the Zeit Recommend service.
 
-Currently three machines are needed:
+Currently four components are needed:
 
-* Varnish caching server
+* Varnish reverse proxy
+* Logstash log transformer
 * RabbitMQ queuing server
-* Storm processing server
+* Storm processing cluster
 
 -------------------------------------------------------------------------------
 
@@ -32,7 +33,7 @@ sudo /etc/init.d/openbsd-inetd restart
 
 * Allow TCP traffic on port 3000
 
-## Rabbit
+## Logstash
 
 * Add a new user for logstash
 
@@ -57,43 +58,6 @@ host => "{INSERT HOST URL HERE}"
 
 ```shell
 sudo curl https://download.elasticsearch.org/logstash/logstash/logstash-1.2.2-flatjar.jar > /home/logstash/logstash.jar
-```
-
-* Add the following line to your /etc/apt/sources.list
-
-```shell
-deb http://www.rabbitmq.com/debian/ testing main
-```
-
-* Trust the rabbitmq public key
-
-```shell
-wget http://www.rabbitmq.com/rabbitmq-signing-key-public.asc
-sudo apt-key add rabbitmq-signing-key-public.asc
-```
-
-* Update package index
-
-```shell
-sudo apt-get update
-```
-
-* Install required packages
-
-```shell
-sudo apt-get install openjdk-6-jre python-setuptools rabbitmq-server upstart
-```
-
-* Ensure rabbit is running
-
-```shell
-sudo rabbitmqctl status
-```
-
-* Install pika
-
-```shell
-sudo easy_install pika
 ```
 
 ### Ubuntu
@@ -131,6 +95,45 @@ update-rc.d logstash-agent defaults
 
 ```shell
 scripts/consumer.py zr_spout logstash
+```
+
+## RabbitMQ
+
+* Add the following line to your /etc/apt/sources.list
+
+```shell
+deb http://www.rabbitmq.com/debian/ testing main
+```
+
+* Trust the rabbitmq public key
+
+```shell
+wget http://www.rabbitmq.com/rabbitmq-signing-key-public.asc
+sudo apt-key add rabbitmq-signing-key-public.asc
+```
+
+* Update package index
+
+```shell
+sudo apt-get update
+```
+
+* Install required packages
+
+```shell
+sudo apt-get install openjdk-6-jre python-setuptools rabbitmq-server upstart
+```
+
+* Ensure rabbit is running
+
+```shell
+sudo rabbitmqctl status
+```
+
+* Install pika
+
+```shell
+sudo easy_install pika
 ```
 
 ## Storm
