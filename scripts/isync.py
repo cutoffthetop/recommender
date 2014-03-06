@@ -83,12 +83,19 @@ if __name__ == '__main__':
             '_id': {'path': 'path'}
             }
         }
-    IndicesClient(es).put_mapping(
-        index=index,
-        ignore_conflicts=True,
-        doc_type='item',
-        body=body
-        )
+
+    ic = IndicesClient(es)
+
+    if not ic.exists(index):
+        ic.create(index)
+
+    if not ic.exists_type(index=index, doc_type='item'):
+        ic.put_mapping(
+            index=index,
+            ignore_conflicts=True,
+            doc_type='item',
+            body=body
+            )
 
     while 1:
         try:

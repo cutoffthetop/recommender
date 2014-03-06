@@ -55,12 +55,19 @@ if __name__ == '__main__':
                 }
             }
         }
-    IndicesClient(es).put_mapping(
-        index=index,
-        ignore_conflicts=True,
-        doc_type='user',
-        body=body
-        )
+
+    ic = IndicesClient(es)
+
+    if not ic.exists(index):
+        ic.create(index)
+
+    if not ic.exists_type(index=index, doc_type='user'):
+        ic.put_mapping(
+            index=index,
+            ignore_conflicts=True,
+            doc_type='user',
+            body=body
+            )
 
     while 1:
         try:
