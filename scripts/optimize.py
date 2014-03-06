@@ -29,7 +29,6 @@ VERSION
     0.1
 """
 
-import copy
 import itertools
 import multiprocessing
 import numpy as np
@@ -37,21 +36,28 @@ import optparse
 import os
 import sys
 
-global MB, RB
-
 
 def predict(params):
-    neighbors, rank = getattr(params, 'tolist', lambda: params)()
+    neighbors, rank = params
 
-    rb = copy.deepcopy(RB)
-    mb = copy.deepcopy(MB)
+    script_path = os.path.dirname(os.path.realpath(__file__))
+    sys.path.append(script_path + '/../storm/src/py/resources')
+    from recommendation import RecommendationBolt
+    from morelikethis import MorelikethisBolt
 
-    rb.U_k = rb.U[:, :rank]
-    rb.S_k = np.diagflat(rb.S)[:rank, :rank]
-    rb.V_t_k = rb.V_t[:rank, :]
+    conf = {
+        'zeit.recommend.svd.base': 10000,
+        'zeit.recommend.svd.rank': rank,
+        'zeit.recommend.elasticsearch.host': 'localhost',
+        'zeit.recommend.zonapi.host': '217.13.68.229'
+        }
+    rb = RecommendationBolt()
+    rb.initialize(conf, None)
+    mb = MorelikethisBolt()
+    mb.initialize(conf, None)
 
     goal = dict(
-        rb.generate_seed(from_=10000, size=500, threshold=0.5)
+        rb.generate_seed(size=1000, threshold=0.25)
         ).items()
 
     goal_matrix = np.array(list(rb.expand(g[1]) for g in goal))
@@ -98,8 +104,6 @@ def tolerant_predict(params):
 
 
 if __name__ == '__main__':
-    global MB, RB
-
     parser = optparse.OptionParser(
         formatter=optparse.TitledHelpFormatter(),
         usage=globals()['__doc__'],
@@ -113,27 +117,15 @@ if __name__ == '__main__':
         )
     (options, args) = parser.parse_args()
 
-    script_path = os.path.dirname(os.path.realpath(__file__))
-    sys.path.append(script_path + '/../storm/src/py/resources')
-    from recommendation import RecommendationBolt
-    from morelikethis import MorelikethisBolt
-
-    conf = {
-        'zeit.recommend.svd.base': 100,
-        'zeit.recommend.svd.rank': 10,
-        'zeit.recommend.elasticsearch.host': 'localhost',
-        'zeit.recommend.zonapi.host': '217.13.68.229'
-        }
-    RB = RecommendationBolt()
-    RB.initialize(conf, None)
-    MB = MorelikethisBolt()
-    MB.initialize(conf, None)
-
-    line = '\t'.join(['base', 'ngbs', 'rank', 'mae', 'xval', 'f1'])
+    line = '\t'.join(['neighbors', 'rank', 'mae', 'xval', 'f1'])
     open('/tmp/opt.csv', 'a').write(line)
 
     prefix = 'tolerant_' if options.tolerant else ''
     func = globals().get('%spredict' % prefix)
     steps = [10, 59, 108, 157, 206, 255, 304, 353, 402, 451, 500]
     pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-    pool.map(func, list(itertools.product(steps[:], steps[:])))
+    promise = pool.map_async(func, list(itertools.product(steps, steps)), 16)
+    try:
+        promise.wait()
+    except KeyboardInterrupt:
+        pool.terminate()
