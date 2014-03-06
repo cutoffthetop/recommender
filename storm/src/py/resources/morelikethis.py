@@ -10,15 +10,13 @@
     License: BSD, see LICENSE for more details.
 """
 
-from storm import Bolt
-from storm import log
-from storm import emit
-
-
+import os
 import time
 
-
 from elasticsearch import Elasticsearch
+from storm import Bolt
+from storm import emit
+from storm import log
 
 
 class MorelikethisBolt(Bolt):
@@ -29,7 +27,8 @@ class MorelikethisBolt(Bolt):
         host = conf.get('zeit.recommend.elasticsearch.host', 'localhost')
         port = conf.get('zeit.recommend.elasticsearch.port', 9200)
         self.es = Elasticsearch(hosts=[{'host': host, 'port': port}])
-        raw = open('./stopwords.txt', 'r').read()
+        script_path = os.path.dirname(os.path.realpath(__file__))
+        raw = open(script_path + '/stopwords.txt', 'r').read()
         self.stopwords = raw.decode('utf-8').split('\n')[3:]
 
     def recommend(self, paths, top_n=10):
