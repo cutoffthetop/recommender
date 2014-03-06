@@ -7,6 +7,7 @@
 
 from datetime import date
 from time import sleep
+from json import dumps
 
 from elasticsearch.client import IndicesClient
 from elasticsearch import Elasticsearch
@@ -14,30 +15,32 @@ from elasticsearch import Elasticsearch
 dest = Elasticsearch(hosts=[{'host': 'localhost', 'port': 9200}])
 src = Elasticsearch(hosts=[{'host': '217.13.68.236', 'port': 9200}])
 index = '%s-%s' % date.today().isocalendar()[:2]
-start = 0
+start = 24000
 
 
-def main():
+def main(size=100):
     global start
 
     hits = src.search(
         from_=start,
-        size=1,
+        size=size,
         doc_type='user'
         )
 
-    start += 1
+    start += size
+    users = hits['hits']['hits']
 
-    user = hits['hits']['hits'][0]
+    get_action = lambda user: dumps({'index': {'_id': user['_id']}})
+    body = [get_action(u) + '\n' + dumps(u['_source']) for u in users]
 
-    status = dest.index(
+    status = dest.bulk(
         index=index,
         doc_type='user',
-        id=user['_id'],
-        body=user['_source'],
+        refresh=True,
+        body='\n'.join(body)
         )
 
-    print user['_id'], status.get('created', False)
+    print start, status.get('created', False)
 
 
 if __name__ == '__main__':
