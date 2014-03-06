@@ -45,11 +45,7 @@ if __name__ == '__main__':
         'user': {
             'properties': {
                 'events': {'type': 'nested'},
-                'rank': {'type': 'float', 'store': 'yes'}
-                },
-            '_boost': {
-                'name': 'rank',
-                'null_value': 0.1
+                'rank': {'type': 'float'}
                 },
             '_timestamp': {
                 'enabled': True
@@ -65,7 +61,6 @@ if __name__ == '__main__':
     if not ic.exists_type(index=index, doc_type='user'):
         ic.put_mapping(
             index=index,
-            ignore_conflicts=True,
             doc_type='user',
             body=body
             )
