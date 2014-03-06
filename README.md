@@ -2,12 +2,12 @@
 
 This guide describes how to setup the Zeit Recommend service.
 
-Currently four components are needed:
+Currently, the setup consists of four components:
 
-* Varnish reverse proxy
-* Logstash log transformer
-* RabbitMQ queuing server
-* Storm processing cluster
+* [Varnish reverse proxy](#varnish)
+* [Logstash log transformer](#logstash)
+* [RabbitMQ queuing server](#rabbitmq)
+* [Storm processing cluster](#storm)
 
 -------------------------------------------------------------------------------
 
@@ -33,7 +33,7 @@ sudo /etc/init.d/openbsd-inetd restart
 
 * Allow TCP traffic on port 3000
 
-## Logstash
+## Logstash<a name="logstash"></a>
 
 * Add a new user for logstash
 
