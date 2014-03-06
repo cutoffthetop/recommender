@@ -15,7 +15,7 @@ from elasticsearch import Elasticsearch
 dest = Elasticsearch(hosts=[{'host': 'localhost', 'port': 9200}])
 src = Elasticsearch(hosts=[{'host': '217.13.68.236', 'port': 9200}])
 index = '%s-%s' % date.today().isocalendar()[:2]
-start = 24000
+start = 0
 
 
 def main(size=100):
@@ -40,7 +40,7 @@ def main(size=100):
         body='\n'.join(body)
         )
 
-    print start, status.get('created', False)
+    print start, dumps(status)
 
 
 if __name__ == '__main__':
