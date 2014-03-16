@@ -76,12 +76,13 @@ def predict(params):
             mae_aggr += abs(prediction_matrix[i, j] - goal_matrix[i, j])
     mae = mae_aggr / np.multiply(*goal_matrix.shape)
 
-    xval_aggr = 1.0
-    for i in range(len(test)):
-        val = mb.recommend(test[i][1], top_n=100)
-        diff = goal[i][1].difference(test[i][1])
-        xval_aggr += len(diff.intersection(val))
-    xval = xval_aggr / float(len(test))
+    imc_aggr = 0.0
+    for i in range(len(goal)):
+        user = list(goal[i][1])
+        cb = mb.recommend(user, top_n=100)
+        cfb = rb.recommend(rb.expand(user), proximity=0.5, neighbors=neighbors)
+        imc_aggr += (len(set(cb).intersection(cfb)) / float(neighbors))
+    imc = imc_aggr / float(len(test))
 
     f1_aggr = 0.0
     for user, paths in test:
@@ -91,7 +92,7 @@ def predict(params):
         f1_aggr += intersection / (len(rb.cols) + len(docs))
     f1 = f1_aggr / float(len(test))
 
-    line = ['%.9f' % i for i in (neighbors, rank, mae, xval, f1)]
+    line = ['%.9f' % i for i in (neighbors, rank, mae, imc, f1)]
     open('/tmp/opt.csv', 'a').write('\n' + '\t'.join(line))
 
 
@@ -117,7 +118,7 @@ if __name__ == '__main__':
         )
     (options, args) = parser.parse_args()
 
-    line = '\t'.join(['neighbors', 'rank', 'mae', 'xval', 'f1'])
+    line = '\t'.join(['neighbors', 'rank', 'mae', 'imc', 'f1'])
     open('/tmp/opt.csv', 'a').write(line)
 
     prefix = 'tolerant_' if options.tolerant else ''

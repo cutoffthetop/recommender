@@ -105,7 +105,8 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     test = goal[:]
     for i in range(len(test)):
         try:
-            test[i] = test[i][0], list(test[i][1])[:-int(len(test[i][1]) * ratio)]
+            idx = -int(len(test[i][1]) * ratio)
+            test[i] = test[i][0], list(test[i][1])[:idx]
         except Exception, e:
             report(e.message, verbose)
 
@@ -125,7 +126,8 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     for i in range(goal_matrix.shape[0]):
         for j in range(goal_matrix.shape[1]):
             try:
-                error_aggregate += abs(prediction_matrix[i, j] - goal_matrix[i, j])
+                diff = prediction_matrix[i, j] - goal_matrix[i, j]
+                error_aggregate += abs(diff)
             except Exception, e:
                 report(e.message, verbose)
     mae = error_aggregate / np.multiply(*goal_matrix.shape)
@@ -141,14 +143,15 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
             report(e.message, verbose)
     recommending = (time.time() - t0) / len(test)
 
-    report('Calculate cross-validation congruency.', verbose)
-    xval_aggregate = 0.0
+    report('Calculate inter-method consistency.', verbose)
+    imc_aggregate = 0.0
     t0 = time.time()
-    for i in range(len(test)):
+    for i in range(size):
         try:
-            val = mb.recommend(test[i][1][:20], top_n=200)
-            # Variable 'paths' is not defined!
-            xval_aggregate += len(goal[1][1].difference(paths).intersection(val))
+            user = list(goal[i][1])
+            cb = mb.recommend(user, top_n=100)
+            cfb = rb.recommend(rb.expand(user), proximity=0.5, neighbors=100)
+            imc_aggregate += (len(set(cb).intersection(cfb)) / float(100))
         except Exception, e:
             report(e.message, verbose)
     validating = (time.time() - t0) / len(test)
@@ -187,7 +190,7 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
     precision = precision_aggregate / len_goal
     f1 = f1_aggregate / len_goal
     top_n = top_n_aggregate / len_goal
-    xval = xval_aggregate / len_goal
+    imc = imc_aggregate / len_goal
 
     options = (
         'Base:\t\t%s' % base,
@@ -204,7 +207,7 @@ def main(base, proximity, rank, ratio, size, threshold, verbose):
         'Initializing:\t%.8fs' % initializing,
         'Validating:\t%.8fs' % validating,
         'MAE:\t\t%.16f' % mae,
-        'X-Val:\t\t%.16f' % xval,
+        'Consistency:\t\t%.16f' % imc,
         'Recall:\t\t%.16f' % recall,
         'Precision:\t%.16f' % precision,
         'F1 Score:\t%.16f' % f1,
