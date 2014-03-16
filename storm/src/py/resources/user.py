@@ -42,7 +42,7 @@ class UserIndexBolt(Bolt):
             return
 
         if not ic.exists_type(index=self.index, doc_type='user'):
-            # TODO: Map out properties of nested events.
+            # TODO: Explicitly map out properties of nested events.
             body = {
                 'user': {
                     'properties': {

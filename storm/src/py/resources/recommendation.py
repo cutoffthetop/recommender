@@ -27,6 +27,7 @@ class RecommendationBolt(Bolt):
     def initialize(self, conf, context):
         self.host = conf.get('zeit.recommend.elasticsearch.host', 'localhost')
         self.port = conf.get('zeit.recommend.elasticsearch.port', 9200)
+        self.folding = conf.get('zeit.recommend.svd.folding', False)
         base = conf.get('zeit.recommend.svd.base', 18)
         k = conf.get('zeit.recommend.svd.rank', 3)
 
@@ -77,12 +78,7 @@ class RecommendationBolt(Bolt):
             assert isinstance(i, unicode)
         return np.array([float(p in paths) for p in self.cols])
 
-    def fold_in_item(self, item, vector):
-        item = np.dot(self.S_k, np.dot(self.V_t_k, vector))
-        self.V_t_k = np.hstack((self.V_t_k, np.array([item]).T))
-        self.cols.append(item)
-
-    def fold_in_user(self, user, vector):
+    def fold(self, user, vector):
         projection = np.dot(self.S_k, np.dot(self.V_t_k, vector))
         self.V_t_k = np.hstack((self.V_t_k, np.array([projection]).T))
         self.rows.append(user)
@@ -115,15 +111,12 @@ class RecommendationBolt(Bolt):
         elif tup.stream == 'default':
             user, paths = tup.values
             if user in self.connections:
-
                 log('[RecommendationBolt] Incoming: %s' % user)
-
                 vector = self.expand(paths)
-                # self.fold_in_user(user, vector)
-
+                if self.folding:
+                    self.fold(user, vector)
                 recommendations = self.recommend(vector).tolist()[:10]
                 paths = list(set(paths))[:10]
-
                 emit([user, paths, recommendations])
 
 

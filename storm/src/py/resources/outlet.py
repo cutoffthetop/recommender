@@ -23,7 +23,6 @@ from ws4py.websocket import WebSocket
 from wsgiref.simple_server import make_server
 import json
 
-# TODO: Global variables shouldn't be the solution.
 _clients = {}
 _server = None
 
